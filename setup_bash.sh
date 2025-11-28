@@ -40,5 +40,3 @@ for i in "${BASH_FILES[@]}";do
     ln -s "$_target" "~/$i"
 done
 
-
-
