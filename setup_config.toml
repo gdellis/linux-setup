@@ -1,0 +1,8 @@
+
+auto_execute = [
+    "Fastfetch",
+    "Alacritty",
+]
+
+skip_confirmation = true
+size_bypass = true
