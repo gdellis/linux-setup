@@ -4,13 +4,26 @@ set -e
 SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 
 BASH_CFG_DEST=~/.config/bash
-
 BASH_FILES=(
     bashrc
     bash_aliases
 )
 
+
+
 ## Functions
+log()
+{
+    
+}
+
+handle_error()
+{
+    local _msg="$1"
+    
+    echo -e "[ERROR] $_msg"
+}
+
 create_link()
 {
     local _file="$1"
@@ -29,7 +42,10 @@ mv ~/.bashrc .bahrc_bak
 
 # Create and copy files to ~/.config/bash
 test -d "$BASH_CFG_DEST" || mkdir -p "$BASH_CFG_DEST"
-cp $SCRIPT_DIR/bash/* "$BASH_CFG_DEST"
+
+test "$SCRIPT_DIR" == "$(pwd)" || pushd "$SCRIPT_DIR"
+
+cp $SCRIPT_DIR/bash/* "$BASH_CFG_DEST" || handle_error
 
 # Create Symbolic links
 for i in "${BASH_FILES[@]}";do

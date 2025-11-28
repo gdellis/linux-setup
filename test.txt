@@ -1,0 +1,21 @@
+NAME                                                 ID              SIZE      MODIFIED       
+nate/instinct:latest                                 aee59dcab680    4.7 GB    6 minutes ago     
+hf.co/dat-lequoc/Fast-Apply-1.5B-v1.0_GGUF:latest    15f9e16acce6    986 MB    6 minutes ago     
+qwen3-embedding:latest                               64b933495768    4.7 GB    6 minutes ago     
+dengcao/Qwen3-Reranker-8B:Q3_K_M                     74081eb12b5f    4.1 GB    6 minutes ago     
+qwen2.5-coder:1.5b                                   d7372fd82851    986 MB    6 minutes ago     
+nomic-embed-text:latest                              0a109f422b47    274 MB    6 minutes ago     
+cogito-2.1:671b-cloud                                36c90b0682ed    -         6 minutes ago     
+kimi-k2-thinking:cloud                               9752ffb77f53    -         6 minutes ago     
+gemini-3-pro-preview:latest                          91a1db042ba1    -         6 minutes ago     
+minimax-m2:cloud                                     698ab6d56142    -         6 minutes ago     
+kimi-k2:1t-cloud                                     20dc43ca06d7    -         6 minutes ago     
+deepseek-v3.1:671b-cloud                             d3749919e45f    -         6 minutes ago     
+glm-4.6:cloud                                        05277b76269f    -         6 minutes ago     
+gpt-oss:120b-cloud                                   569662207105    -         6 minutes ago     
+qwen3-vl:235b-instruct-cloud                         2bf9522f6961    -         6 minutes ago     
+qwen3-vl:235b-cloud                                  86b3322ec200    -         6 minutes ago     
+gpt-oss:20b-cloud                                    875e8e3a629a    -         48 minutes ago    
+llama3.1:8b                                          46e0c10c039e    4.9 GB    49 minutes ago    
+qwen2.5-coder:1.5b-base                              02e0f2817a89    986 MB    57 minutes ago    
+gpt-oss:latest                                       17052f91a42e    13 GB     16 hours ago      
