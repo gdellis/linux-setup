@@ -1,10 +1,42 @@
 #!/usr/bin/env bash
-set -e
 # set -x
-# Source logging functions
-source "$(dirname "${BASH_SOURCE[0]}")/logging.sh"
 
+# -----------------------------------
+# Setup Directory Variables
+# -----------------------------------
+# region
 SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
+
+MARKERS=(
+    ".git"                 # Git repo
+    ".topdir"              # Your custom marker
+    ".vscode"
+)
+
+TOP="$SCRIPT_DIR"
+while [[ "$TOP" != "/" ]]; do
+for marker in "${MARKERS[@]}"; do
+    if [[ -e "$TOP/$MARKERS" ]]; then
+    echo -e "Project root found: $TOP"
+    export TOP   # make it available to the rest of the script
+    break 2      # break out of both loops
+    fi
+done
+TOP="$(dirname "$PROJECT_ROOT")"
+done
+
+# If we fell out of the loop we didn’t find any marker
+if [[ -z "$PROJECT_ROOT" || "$PROJECT_ROOT" == "/" ]]; then
+echo -e "⚠️  Could not locate a project root. Exiting."
+exit 1
+fi
+
+LIB_DIR="$TOP/lib"
+
+# Source Logger
+source "$LIB_DIR/logging.sh" || exit 1
+# endregion
+# -----------------------------------
 
 BASH_CFG_DEST=~/.config
 BASH_FILES=(
@@ -23,14 +55,8 @@ cleanup()
     [ $(dirs -p | wc -l) -gt 0 ] && popd -0
     log_info "$0 is finished"
 }
+trap cleanup EXIT
 
-# Error handling function
-handle_error()
-{
-    local _msg="$1"
-    log_error "$_msg"
-    exit 1
-}
 
 create_link()
 {

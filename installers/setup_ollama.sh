@@ -1,4 +1,32 @@
-#!/bin/bash
+#!/usr/bin/env bash
+# set -x
+
+# -----------------------------------
+# Setup Directory Variables
+# -----------------------------------
+# region
+SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
+
+if [ -f "$SCRIPT_DIR/.topdir" ];then
+    TOP=$($SCRIPT_DIR)
+else
+    TOP="$(realpath "$SCRIPT_DIR/..")"
+fi
+
+LIB_DIR="$TOP/lib"
+
+# Source Logger
+source "$LIB_DIR/logging.sh" || exit 1
+# endregion
+# -----------------------------------
+
+# Error handling function
+handle_error()
+{
+    local _msg="$1"
+    echo -e "[ERROR] $_msg"
+    exit 1
+}
 
 cloud_models=(
     "qwen3-vl:235b-cloud"
@@ -67,4 +95,10 @@ echo -e " Finished Downloading models"
 echo -e "--------------------------------------"
 
 # Login
-# ollama signin
+log_info "$0 Completed Successfully"
+
+echo
+echo "Before you can use cloud models you must login to your account by running:"
+echo "ollama signin"
+echo
+
