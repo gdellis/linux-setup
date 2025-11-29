@@ -1,42 +1,64 @@
 #!/usr/bin/env bash
-# set -x
+# ------------------------------------------------------------
+# region Script Setup
+# ------------------------------------------------------------
+# Uncomment for verbose debugging
+# set -x 
 
-# -----------------------------------
+# ------------------------------------------------------------
 # Setup Directory Variables
-# -----------------------------------
+# ------------------------------------------------------------
 # region
 SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 
-MARKERS=(
-    ".git"                 # Git repo
-    ".topdir"              # Your custom marker
-    ".vscode"
-)
+# ------------------------------------------------------------
+# region Determine top‑level directory
+# ------------------------------------------------------------
+# 1️⃣ Prefer Git if we are inside a repo
+TOP="$(git rev-parse --show-toplevel 2>/dev/null)"
 
-TOP="$SCRIPT_DIR"
-while [[ "$TOP" != "/" ]]; do
-for marker in "${MARKERS[@]}"; do
-    if [[ -e "$TOP/$MARKERS" ]]; then
-    echo -e "Project root found: $TOP"
-    export TOP   # make it available to the rest of the script
-    break 2      # break out of both loops
+# 2️⃣ If not a Git repo, look for a known marker (e.g., .topdir)
+if [[ -z "$TOP" ]]; then
+  # Resolve the directory where this script resides
+  SCRIPT_DIR="$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
+
+  # Walk upward until we find .topdir or stop at /
+  DIR="$SCRIPT_DIR"
+  while [[ "$DIR" != "/" ]]; do
+    if [[ -f "$DIR/.topdir" ]]; then
+      TOP="$DIR"
+      break
     fi
-done
-TOP="$(dirname "$PROJECT_ROOT")"
-done
-
-# If we fell out of the loop we didn’t find any marker
-if [[ -z "$PROJECT_ROOT" || "$PROJECT_ROOT" == "/" ]]; then
-echo -e "⚠️  Could not locate a project root. Exiting."
-exit 1
+    DIR="$(dirname "$DIR")"
+  done
 fi
 
+# 3️⃣ Give up with a clear error if we still have no root
+if [[ -z "$TOP" ]]; then
+  echo "❌  Unable to locate project root. Ensure you are inside a Git repo or that a .topdir file exists."
+  exit 1
+fi
+
+export TOP
+log_info "(setup_bash.sh) Project root resolved to: $TOP"
+# ------------------------------------------------------------
+# endregion
+# ------------------------------------------------------------
+
+# ------------------------------------------------------------
+# region Setup Logger
+# ------------------------------------------------------------
 LIB_DIR="$TOP/lib"
 
 # Source Logger
 source "$LIB_DIR/logging.sh" || exit 1
+# ------------------------------------------------------------
 # endregion
-# -----------------------------------
+# ------------------------------------------------------------
+
+# ------------------------------------------------------------
+# endregion
+# ------------------------------------------------------------
 
 BASH_CFG_DEST=~/.config
 BASH_FILES=(
