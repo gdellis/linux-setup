@@ -69,17 +69,21 @@ handle_error()
 }
 
 cloud_models=(
-    "qwen3-vl:235b-cloud"
-    "qwen3-vl:235b-instruct-cloud"
-    "gpt-oss:120b-cloud"
+    "ministral-3:3b-cloud"
+    "ministral-3:8b-cloud"
+    "ministral-3:14b-cloud"
+    "mistral-large-3:675b-cloud"
+    "qwen3-coder:480b-cloud"
+    "cogito-2.1:671b-cloud"
+    "kimi-k2-thinking:cloud"
+    "kimi-k2:1t-cloud"
+    "minimax-m2:cloud"
+    "deepseek-v3.1:671b-cloud"
     "gpt-oss:120b-cloud"
     "glm-4.6:cloud"
-    "deepseek-v3.1:671b-cloud"
-    "minimax-m2:cloud"
-    "kimi-k2:1t-cloud"
-    "gemini-3-pro-preview:latest"
-    "kimi-k2-thinking:cloud"
-    "cogito-2.1:671b-cloud"
+    "qwen3-vl:235b-instruct-cloud"
+    "qwen3-vl:235b-cloud"
+    "gpt-oss:20b-cloud"
 )
 
 local_models=(
@@ -95,7 +99,7 @@ check_list()
 {
     local _model="$1"
    
-    if  ollama ls | grep -q $_model;then
+    if  ollama ls | grep -q "$_model";then
         echo -e "'$_model' is already downloaded, skipping"
         return 0
     else
@@ -111,28 +115,39 @@ dl_model()
     # Check if model is already downloaded
     if ! check_list "$1"; then
         echo -e "Downloading Model: $1"
-        ollama pull $1
+        ollama pull "$1"
         echo -e "Finished Pulling Model: $1"
     fi
 }
 
-echo -e "--------------------------------------"
-echo -e "Downloading Cloud Models"
-echo -e "--------------------------------------"
-for model in "${cloud_models[@]}";do
-    dl_model "$model"
-done;
+download_models()
+{
+    echo -e "--------------------------------------"
+    echo -e "Downloading Cloud Models"
+    echo -e "--------------------------------------"
+    for model in "${cloud_models[@]}";do
+        dl_model "$model"
+    done;
 
-echo -e "--------------------------------------"
-echo -e "Downloading Local Models"
-echo -e "--------------------------------------"
-for model in "${local_models[@]}";do
-    dl_model "$model"
-done
+    echo -e "--------------------------------------"
+    echo -e "Downloading Local Models"
+    echo -e "--------------------------------------"
+    for model in "${local_models[@]}";do
+        dl_model "$model"
+    done
 
-echo -e "--------------------------------------"
-echo -e " Finished Downloading models"
-echo -e "--------------------------------------"
+    echo -e "--------------------------------------"
+    echo -e " Finished Downloading models"
+    echo -e "--------------------------------------"
+}
+
+install_ollama()
+{
+    log_info "Installing Ollama"
+    curl -fsSL https://ollama.com/install.sh | sh
+}
+
+download_models
 
 # Login
 log_info "$0 Completed Successfully"
