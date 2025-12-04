@@ -3,11 +3,18 @@
 
 set -euo pipefail
 
-# Configuration
-APP_NAME=orcaslicer
+
 VERSION="2.3.1"
 BASE_URL="https://github.com/OrcaSlicer/OrcaSlicer/releases/download/${VERSION}"
-DL_DIR="${HOME}/downloads/orcaslicer"
+
+
+# ------------------------------------------------------------
+# Setup Logging
+# ------------------------------------------------------------
+# region
+
+APP_NAME=orcaslicer
+DL_DIR="${HOME}/downloads/$AMM_NAME"
 LOG_DIR="${HOME}/logs/$APP_NAME"
 LOG_FILE="${LOG_DIR}/install_$(date +%Y%m%d_%H%M%S).log"
 
@@ -23,36 +30,21 @@ mkdir -p "$DL_DIR"
 mkdir -p "$LOG_DIR"
 
 # Logging functions with color and file output
-log_info() {
-  local msg
-  msg="[$(date '+%Y-%m-%d %H:%M:%S')] [INFO] $*"
-  echo -e "${GREEN}${msg}${NC}" | tee -a "$LOG_FILE" >/dev/null
-  echo -e "${GREEN}${msg}${NC}"
+log()
+{
+    local msg
+    msg="[$(date '+%Y-%m-%d %H:%M:%S')] $*"
+    echo -e "$msg" | tee -a "$LOG_FILE"
 }
 
-log_error() {
-  local msg
-  msg="[$(date '+%Y-%m-%d %H:%M:%S')] [ERROR] $*"
-  echo -e "${RED}${msg}${NC}" | tee -a "$LOG_FILE" >/dev/null
-  echo -e "${RED}${msg}${NC}" >&2
-}
+log_info() { log "${GREEN}[INFO]${NC} $*";}
+log_error() { log "${RED}[ERROR]${NC} $*";}
+log_success() { log "${GREEN}[SUCCESS]${NC} $*";}
+log_warning() { log "${YELLOW}[WARNING]${NC} $*";}
 
-log_success() {
-  local msg
-  msg="[$(date '+%Y-%m-%d %H:%M:%S')] [SUCCESS] $*"
-  echo -e "${BLUE}${msg}${NC}" | tee -a "$LOG_FILE" >/dev/null
-  echo -e "${BLUE}${msg}${NC}"
-}
-
-log_warning() {
-  local msg
-  msg="[$(date '+%Y-%m-%d %H:%M:%S')] [WARNING] $*"
-  echo -e "${YELLOW}${msg}${NC}" | tee -a "$LOG_FILE" >/dev/null
-  echo -e "${YELLOW}${msg}${NC}"
-}
-
-log_info "=== OrcaSlicer Installer Started ==="
+log_info "=== $APP_NAME Installer Started ==="
 log_info "Log file: $LOG_FILE"
+# endregion
 
 # Download file with error checking
 dl_file() {

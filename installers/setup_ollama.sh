@@ -1,5 +1,43 @@
 #!/usr/bin/env bash
+
 set -euo pipefail
+
+# ------------------------------------------------------------
+# Setup Logging
+# ------------------------------------------------------------
+# region
+APP_NAME=ollama
+DL_DIR="${HOME}/downloads/AMM_NAME"
+LOG_DIR="${HOME}/logs/$APP_NAME"
+LOG_FILE="${LOG_DIR}/install_$(date +%Y%m%d_%H%M%S).log"
+
+# Color codes
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+NC='\033[0m' # No Color
+
+# Ensure directories exist
+mkdir -p "$DL_DIR"
+mkdir -p "$LOG_DIR"
+
+# Logging functions with color and file output
+log()
+{
+    local msg
+    msg="[$(date '+%Y-%m-%d %H:%M:%S')] $*"
+    echo -e "$msg" | tee -a "$LOG_FILE"
+}
+
+log_info() { log "${GREEN}[INFO]${NC} $*";}
+log_error() { log "${RED}[ERROR]${NC} $*";}
+log_success() { log "${GREEN}[SUCCESS]${NC} $*";}
+log_warning() { log "${YELLOW}[WARNING]${NC} $*";}
+
+log_info "=== $APP_NAME Installer Started ==="
+log_info "Log file: $LOG_FILE"
+# endregion
 
 # ------------------------------------------------------------
 # Configuration
@@ -36,13 +74,9 @@ local_models=(
 # Logging
 # ------------------------------------------------------------
 
-log() {
-    echo -e "[$(date '+%Y-%m-%d %H:%M:%S')] $*"
-}
-
 handle_error() {
     local msg="$1"
-    log "❌ ERROR: $msg"
+    log_error "❌ ERROR: $msg"
     exit 1
 }
 
@@ -89,22 +123,22 @@ install_ollama() {
     fi
     
     rm "$installer"
-    log "✓ Ollama installed successfully"
+    log_success "✓ Ollama installed successfully"
 }
 
 download_model() {
     local model="$1"
     
     if is_model_downloaded "$model"; then
-        log "⏭️  Skipping '$model' (already downloaded)"
+        log_info "⏭️  Skipping '$model' (already downloaded)"
         return 0
     fi
     
-    log "📥 Downloading '$model'..."
+    log_info "📥 Downloading '$model'..."
     if ollama pull "$model" >/tmp/ollama_pull.log 2>&1; then
-        log "✓ Successfully downloaded '$model'"
+        log_success "✓ Successfully downloaded '$model'"
     else
-        log "⚠️  Failed to download '$model' (continuing...)"
+        log_warning "⚠️  Failed to download '$model' (continuing...)"
         return 1
     fi
 }
@@ -114,21 +148,21 @@ download_model_list() {
     shift
     local models=("$@")
     
-    log "=== $list_name ==="
+    log_info "=== $list_name ==="
     for model in "${models[@]}"; do
         download_model "$model"
     done
 }
 
 main() {
-    log "Starting Ollama setup..."
+    log_info "Starting Ollama setup..."
     
     # Check basic dependencies (curl, jq)
     check_dependencies
     
     # Check/install Ollama
     if ! command -v ollama &> /dev/null; then
-        log "Ollama not found. Installing..."
+        lot_warning "Ollama not found. Installing..."
         install_ollama
     fi
     
@@ -140,9 +174,9 @@ main() {
     download_model_list "Cloud Models" "${cloud_models[@]}"
     download_model_list "Local Models" "${local_models[@]}"
     
-    log "===================================="
-    log "✓ Model download process completed"
-    log "===================================="
+    log_success "===================================="
+    log_success "✓ Model download process completed"
+    log_success "===================================="
     
     echo
     echo "For cloud models, you must login to your account by running:"
