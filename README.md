@@ -1,49 +1,130 @@
-# Project Name
+# Linux Development Environment Setup
 
 ## Description
 
-Briefly describe what your project does and its main purpose.
+This project automates the setup of a comprehensive Linux development environment with customized bash configuration, CLI tools, and AI model management. It streamlines the process of configuring a productive development environment on Linux systems.
+
+The setup includes:
+- Customized bash environment with aliases and prompt customization
+- Automated installation and configuration of development tools
+- AI model management for local and cloud inference with Ollama
+- 3D printing software setup (OrcaSlicer)
 
 ## Table of Contents
 
-- [Installation](#installation)
-- [Usage](#usage)
 - [Features](#features)
+- [Installation](#installation)
+  - [Prerequisites](#prerequisites)
+  - [Setup Steps](#setup-steps)
+- [Usage](#usage)
+- [Configuration](#configuration)
+- [Technologies Used](#technologies-used)
 - [Contributing](#contributing)
 - [License](#license)
-- [Contact](#contact)
+
+## Features
+
+- **Enhanced Bash Environment**:
+  - Custom `.bashrc` configuration with Starship prompt
+  - Useful aliases for common commands (ls, grep, etc.)
+  - Colorized output for better readability
+  - History management improvements
+
+- **AI Model Management**:
+  - Automated Ollama installation
+  - Download and management of local and cloud AI models
+  - Support for various AI models including coding assistants and embedding models
+
+- **Development Tools Setup**:
+  - Fabric AI framework installation and configuration
+  - YouTube transcription capabilities with yt-dlp
+  - Integrated API key management with 1Password CLI
+
+- **3D Printing Software**:
+  - OrcaSlicer installation with multiple options (Flatpak, AppImage, Docker, source build)
+
+- **Logging and Error Handling**:
+  - Comprehensive logging for all setup processes
+  - Colorized output for better visibility
+  - Robust error handling and reporting
 
 ## Installation
 
 ### Prerequisites
 
-List any prerequisites that need to be installed before setting up your project.
+Before running the setup scripts, ensure you have:
 
-### Steps
+- A Linux-based operating system
+- Bash shell
+- Basic command-line tools (curl, git, etc.)
+- For Fabric setup: 1Password CLI configured with appropriate API keys
+- For OrcaSlicer Docker builds: Docker installed
 
-```bash
-# Clone the repository
-git clone https://github.com/yourusername/your-repo-name.git
+### Setup Steps
 
-# Navigate to the project directory
-cd your-repo-name
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/gdellis/linux-setup
+   cd linuxsetup
+   ```
+
+2. Run the bash environment setup:
+   ```bash
+   ./setup_bash.sh
+   ```
+
+3. Install and configure AI tools (optional):
+   ```bash
+   # Install and configure Ollama with predefined models
+   ./installers/setup_ollama.sh
+   
+   # Install and configure Fabric AI framework
+   ./installers/setup_fabric.sh
+   ```
+
+4. Install 3D printing software (optional):
+   ```bash
+   # Choose one of the following installation methods:
+   ./installers/setup_orcaslicer.sh flatpak
+   ./installers/setup_orcaslicer.sh appimage
+   ./installers/setup_orcaslicer.sh docker
+   ./installers/setup_orcaslicer.sh linux
+   ```
 
 ## Usage
 
-Provide instructions and examples on how to use your project.
+After installation, your bash environment will be enhanced with:
 
-```bash
-# Example command to run the project
-```
+- Custom aliases for common commands:
+  - `ll`: Detailed list view (`ls -alF`)
+  - `la`: List all files (`ls -A`)
+  - `l`: Compact list view (`ls -CF`)
+  - Colorized `ls`, `grep`, and other commands
 
-## Features
+- Starship prompt for enhanced terminal appearance
 
-- List the key features of your project
-- Use bullet points for easy reading
+- For AI tools:
+  - Ollama with preconfigured local and cloud models
+  - Fabric framework with pattern aliases
+  - YouTube transcription capabilities with the `yt` command
+
+## Configuration
+
+The project creates backups of your existing configuration files in the `backups/` directory with timestamps.
+
+Main configuration files:
+- `bash/.bashrc`: Enhanced bash configuration with Starship prompt
+- `bash/.bash_aliases`: Custom command aliases
+- Custom configurations for Fabric, Ollama, and other tools are placed in their respective config directories
 
 ## Technologies Used
 
-- List the main technologies, frameworks, and libraries used in your project
+- **Bash scripting** - Core automation framework
+- **Starship** - Customizable prompt for any shell
+- **Ollama** - Local AI model management
+- **Fabric** - AI framework for pattern-based processing
+- **OrcaSlicer** - 3D printing software
+- **1Password CLI** - Secure API key management
 
 ## Contributing
 
@@ -55,10 +136,4 @@ Provide instructions and examples on how to use your project.
 
 ## License
 
-This project is licensed under the [MIT License](LICENSE.md).
-
-## Contact
-
-Your Name - [@your_twitter](https://twitter.com/your_twitter) - your.email@example.com
-
-Project Link: [https://github.com/yourusername/your-repo-name](https://github.com/yourusername/your-repo-name)
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
