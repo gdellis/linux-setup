@@ -29,7 +29,7 @@ local_models=(
     "qwen3-embedding:latest"
     "hf.co/dat-lequoc/Fast-Apply-1.5B-v1.0_GGUF:latest"
     "dengcao/Qwen3-Reranker-8B:Q3_K_M"
-    "nate/instinct"
+    "nate/instinct:latest"
 )
 
 # ------------------------------------------------------------
@@ -64,10 +64,10 @@ check_dependencies() {
 # ------------------------------------------------------------
 
 get_downloaded_models() {
-    if ! ollama list --format json &>/tmp/ollama_error.log; then
+    if ! /usr/local/bin/ollama list  &>/tmp/ollama_error.log; then
         handle_error "Failed to query Ollama. Is the service running?"
     fi
-    ollama list --format json | jq -r '.[].name' | sort > "/tmp/ollama_cache_$$"
+    /usr/local/bin/ollama list | awk '{print $1}' | sort > "/tmp/ollama_cache_$$"
 }
 
 is_model_downloaded() {
