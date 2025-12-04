@@ -1,72 +1,9 @@
 #!/usr/bin/env bash
-# ------------------------------------------------------------
-# region Script Setup
-# ------------------------------------------------------------
-# Uncomment for verbose debugging
-# set -x 
+set -euo pipefail
 
 # ------------------------------------------------------------
-# Setup Directory Variables
+# Configuration
 # ------------------------------------------------------------
-# region
-SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
-
-# ------------------------------------------------------------
-# region Determine top‑level directory
-# ------------------------------------------------------------
-# 1️⃣ Prefer Git if we are inside a repo
-TOP="$(git rev-parse --show-toplevel 2>/dev/null)"
-
-# 2️⃣ If not a Git repo, look for a known marker (e.g., .topdir)
-if [[ -z "$TOP" ]]; then
-  # Resolve the directory where this script resides
-  SCRIPT_DIR="$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
-
-  # Walk upward until we find .topdir or stop at /
-  DIR="$SCRIPT_DIR"
-  while [[ "$DIR" != "/" ]]; do
-    if [[ -f "$DIR/.topdir" ]]; then
-      TOP="$DIR"
-      break
-    fi
-    DIR="$(dirname "$DIR")"
-  done
-fi
-
-# 3️⃣ Give up with a clear error if we still have no root
-if [[ -z "$TOP" ]]; then
-  echo "❌  Unable to locate project root. Ensure you are inside a Git repo or that a .topdir file exists."
-  exit 1
-fi
-
-export TOP
-log_info "(setup_bash.sh) Project root resolved to: $TOP"
-# ------------------------------------------------------------
-# endregion
-# ------------------------------------------------------------
-
-# ------------------------------------------------------------
-# region Setup Logger
-# ------------------------------------------------------------
-LIB_DIR="$TOP/lib"
-
-# Source Logger
-source "$LIB_DIR/logging.sh" || exit 1
-# ------------------------------------------------------------
-# endregion
-# ------------------------------------------------------------
-
-# ------------------------------------------------------------
-# endregion
-# ------------------------------------------------------------
-
-# Error handling function
-handle_error()
-{
-    local _msg="$1"
-    echo -e "[ERROR] $_msg"
-    exit 1
-}
 
 cloud_models=(
     "ministral-3:3b-cloud"
@@ -95,65 +32,125 @@ local_models=(
     "nate/instinct"
 )
 
-check_list()
-{
-    local _model="$1"
-   
-    if  ollama ls | grep -q "$_model";then
-        echo -e "'$_model' is already downloaded, skipping"
+# ------------------------------------------------------------
+# Logging
+# ------------------------------------------------------------
+
+log() {
+    echo -e "[$(date '+%Y-%m-%d %H:%M:%S')] $*"
+}
+
+handle_error() {
+    local msg="$1"
+    log "❌ ERROR: $msg"
+    exit 1
+}
+
+# ------------------------------------------------------------
+# Dependency Checks
+# ------------------------------------------------------------
+
+check_dependencies() {
+    local deps=("curl" "jq")
+    for dep in "${deps[@]}"; do
+        if ! command -v "$dep" &> /dev/null; then
+            handle_error "$dep is required but not installed"
+        fi
+    done
+}
+
+# ------------------------------------------------------------
+# Core Functions
+# ------------------------------------------------------------
+
+get_downloaded_models() {
+    if ! ollama list --format json &>/tmp/ollama_error.log; then
+        handle_error "Failed to query Ollama. Is the service running?"
+    fi
+    ollama list --format json | jq -r '.[].name' | sort > "/tmp/ollama_cache_$$"
+}
+
+is_model_downloaded() {
+    local model="$1"
+    grep -Fxq "$model" "/tmp/ollama_cache_$$"
+}
+
+install_ollama() {
+    log "Installing Ollama..."
+    local installer="/tmp/ollama_install.sh"
+    
+    if ! curl -fsSL https://ollama.com/install.sh -o "$installer"; then
+        handle_error "Failed to download Ollama installer"
+    fi
+    
+    if ! sh "$installer" 2>/tmp/ollama_install_error.log; then
+        rm "$installer"
+        handle_error "Ollama installation failed. Check /tmp/ollama_install_error.log"
+    fi
+    
+    rm "$installer"
+    log "✓ Ollama installed successfully"
+}
+
+download_model() {
+    local model="$1"
+    
+    if is_model_downloaded "$model"; then
+        log "⏭️  Skipping '$model' (already downloaded)"
         return 0
+    fi
+    
+    log "📥 Downloading '$model'..."
+    if ollama pull "$model" >/tmp/ollama_pull.log 2>&1; then
+        log "✓ Successfully downloaded '$model'"
     else
-        echo -e "'$_model' is NOT downloaded"
+        log "⚠️  Failed to download '$model' (continuing...)"
         return 1
     fi
 }
 
-dl_model()
-{
-    echo -e "Pulling Model: $1"
-
-    # Check if model is already downloaded
-    if ! check_list "$1"; then
-        echo -e "Downloading Model: $1"
-        ollama pull "$1"
-        echo -e "Finished Pulling Model: $1"
-    fi
-}
-
-download_models()
-{
-    echo -e "--------------------------------------"
-    echo -e "Downloading Cloud Models"
-    echo -e "--------------------------------------"
-    for model in "${cloud_models[@]}";do
-        dl_model "$model"
-    done;
-
-    echo -e "--------------------------------------"
-    echo -e "Downloading Local Models"
-    echo -e "--------------------------------------"
-    for model in "${local_models[@]}";do
-        dl_model "$model"
+download_model_list() {
+    local list_name="$1"
+    shift
+    local models=("$@")
+    
+    log "=== $list_name ==="
+    for model in "${models[@]}"; do
+        download_model "$model"
     done
-
-    echo -e "--------------------------------------"
-    echo -e " Finished Downloading models"
-    echo -e "--------------------------------------"
 }
 
-install_ollama()
-{
-    log_info "Installing Ollama"
-    curl -fsSL https://ollama.com/install.sh | sh
+main() {
+    log "Starting Ollama setup..."
+    
+    # Check basic dependencies (curl, jq)
+    check_dependencies
+    
+    # Check/install Ollama
+    if ! command -v ollama &> /dev/null; then
+        log "Ollama not found. Installing..."
+        install_ollama
+    fi
+    
+    # Cache downloaded models
+    get_downloaded_models
+    trap 'rm -f "/tmp/ollama_cache_$$"' EXIT
+    
+    # Download all models
+    download_model_list "Cloud Models" "${cloud_models[@]}"
+    download_model_list "Local Models" "${local_models[@]}"
+    
+    log "===================================="
+    log "✓ Model download process completed"
+    log "===================================="
+    
+    echo
+    echo "For cloud models, you must login to your account by running:"
+    echo "  ollama signin"
+    echo
 }
 
-download_models
-
-# Login
-log_info "$0 Completed Successfully"
-
-echo
-echo "Before you can use cloud models you must login to your account by running:"
-echo "ollama signin"
-echo
-
+# Run main function if script is executed directly
+if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+    main "$@"
+fi
