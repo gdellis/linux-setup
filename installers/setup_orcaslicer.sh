@@ -1,173 +1,200 @@
 #!/usr/bin/env bash
-# ------------------------------------------------------------
-# region Script Setup
-# ------------------------------------------------------------
-# Uncomment for verbose debugging
-# set -x 
+# setup_orcaslicer.sh - Install OrcaSlicer with colored logging and file logging
 
-# ------------------------------------------------------------
-# Setup Directory Variables
-# ------------------------------------------------------------
-# region
-SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
+set -euo pipefail
 
-# ------------------------------------------------------------
-# region Determine top‑level directory
-# ------------------------------------------------------------
-# 1️⃣ Prefer Git if we are inside a repo
-TOP="$(git rev-parse --show-toplevel 2>/dev/null)"
-
-# 2️⃣ If not a Git repo, look for a known marker (e.g., .topdir)
-if [[ -z "$TOP" ]]; then
-  # Resolve the directory where this script resides
-  SCRIPT_DIR="$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
-
-  # Walk upward until we find .topdir or stop at /
-  DIR="$SCRIPT_DIR"
-  while [[ "$DIR" != "/" ]]; do
-    if [[ -f "$DIR/.topdir" ]]; then
-      TOP="$DIR"
-      break
-    fi
-    DIR="$(dirname "$DIR")"
-  done
-fi
-
-# 3️⃣ Give up with a clear error if we still have no root
-if [[ -z "$TOP" ]]; then
-  echo -e "❌  Unable to locate project root. Ensure you are inside a Git repo or that a .topdir file exists."
-  exit 1
-fi
-
-export TOP
-echo -e "(setup_bash.sh) Project root resolved to: $TOP"
-# ------------------------------------------------------------
-# endregion
-# ------------------------------------------------------------
-
-# ------------------------------------------------------------
-# region Setup Logger
-# ------------------------------------------------------------
-LIB_DIR="$TOP/lib"
-
-# Source Logger
-source "$LIB_DIR/logging.sh" || exit 1
-# ------------------------------------------------------------
-# endregion
-# ------------------------------------------------------------
-
-# ------------------------------------------------------------
-# endregion
-# ------------------------------------------------------------
-
-# Error handling function
-handle_error()
-{
-    local _msg="$1"
-    echo -e "[ERROR] $_msg"
-    exit 1
-}
-# Configuration Variables
+# Configuration
+APP_NAME=orcaslicer
 VERSION="2.3.1"
-BASE_URL="https://github.com/OrcaSlicer/OrcaSlicer/releases/download/$VERSION"
-FLATPACK_URL="$BASE_URL/OrcaSlicer-Linux-flatpak_V2.3.1_x86_64.flatpak"
-APPIMAGE_URL="$BASE_URL/OrcaSlicer_Linux_AppImage_Ubuntu2404_V2.3.1.AppImage"
+BASE_URL="https://github.com/OrcaSlicer/OrcaSlicer/releases/download/${VERSION}"
+DL_DIR="${HOME}/downloads/orcaslicer"
+LOG_DIR="${HOME}/logs/$APP_NAME"
+LOG_FILE="${LOG_DIR}/install_$(date +%Y%m%d_%H%M%S).log"
 
-DL_DIR="$TOP/downloads"
+# Color codes
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+NC='\033[0m' # No Color
 
-test -d "$DL_DIR" || mkdir -p "$DL_DIR"
+# Ensure directories exist
+mkdir -p "$DL_DIR"
+mkdir -p "$LOG_DIR"
 
-pushdir()
-{
-  log_info "Push Dir to $1"
-  pushd $1 >/dev/null || ( log_error "Failure to pushd to '$1'"; return 1 )
-  return 0
+# Logging functions with color and file output
+log_info() {
+  local msg
+  msg="[$(date '+%Y-%m-%d %H:%M:%S')] [INFO] $*"
+  echo -e "${GREEN}${msg}${NC}" | tee -a "$LOG_FILE" >/dev/null
+  echo -e "${GREEN}${msg}${NC}"
 }
 
-popdir()
-{
-  popd $@ >/dev/null || ( log_error "Failure to popd"; return 1 )
+log_error() {
+  local msg
+  msg="[$(date '+%Y-%m-%d %H:%M:%S')] [ERROR] $*"
+  echo -e "${RED}${msg}${NC}" | tee -a "$LOG_FILE" >/dev/null
+  echo -e "${RED}${msg}${NC}" >&2
 }
 
-dl_file()
-{
-    local _url="$1"
-    local _dst="${2:-$DL_DIR}"
-    local _filename="$(basename "$_url")"
-    pushdir "$_dst"
-    log_info "Downloading File: '$_filename'"
-    if wget "$_url" -o "$_filename"; then
-      log_info "Successfully downloaded file '$_filename'"
-    else
-      log_error "Failed to download file '$_filename'"
-      popdir
+log_success() {
+  local msg
+  msg="[$(date '+%Y-%m-%d %H:%M:%S')] [SUCCESS] $*"
+  echo -e "${BLUE}${msg}${NC}" | tee -a "$LOG_FILE" >/dev/null
+  echo -e "${BLUE}${msg}${NC}"
+}
+
+log_warning() {
+  local msg
+  msg="[$(date '+%Y-%m-%d %H:%M:%S')] [WARNING] $*"
+  echo -e "${YELLOW}${msg}${NC}" | tee -a "$LOG_FILE" >/dev/null
+  echo -e "${YELLOW}${msg}${NC}"
+}
+
+log_info "=== OrcaSlicer Installer Started ==="
+log_info "Log file: $LOG_FILE"
+
+# Download file with error checking
+dl_file() {
+  local url="$1"
+  local dest_dir="${2:-$DL_DIR}"
+  local filename
+  filename="$(basename "$url")"
+  local output_path="${dest_dir}/${filename}"
+  
+  log_info "Downloading: $filename"
+  
+  if wget -q --show-progress "$url" -O "$output_path" 2>&1 | tee -a "$LOG_FILE" >/dev/null; then
+    log_success "Successfully downloaded: $filename"
+    echo "$output_path"
+  else
+    log_error "Failed to download: $filename"
+    return 1
+  fi
+}
+
+# Install Flatpak version
+install_flatpak() {
+  local flatpak_url="${BASE_URL}/OrcaSlicer-Linux-flatpak_V${VERSION}_x86_64.flatpak"
+  local flatpak_file
+  
+  log_info "Downloading OrcaSlicer Flatpak..."
+  flatpak_file=$(dl_file "$flatpak_url") || return 1
+  
+  log_info "Installing OrcaSlicer Flatpak..."
+  flatpak install --user -y "$flatpak_file" 2>&1 | tee -a "$LOG_FILE" || {
+    log_error "Flatpak installation failed"
+    return 1
+  }
+  
+  log_success "OrcaSlicer Flatpak installed successfully"
+}
+
+# Install AppImage version
+install_appimage() {
+  local appimage_url="${BASE_URL}/OrcaSlicer_Linux_AppImage_Ubuntu2404_V${VERSION}.AppImage"
+  local appimage_file
+  
+  log_info "Downloading OrcaSlicer AppImage..."
+  appimage_file=$(dl_file "$appimage_url") || return 1
+  
+  log_success "AppImage downloaded to: $appimage_file"
+  log_warning "Make it executable with: chmod +x $appimage_file"
+}
+
+# Build from source with Docker
+build_docker() {
+  log_info "Building OrcaSlicer from source with Docker..."
+  
+  local repo_dir="${DL_DIR}/OrcaSlicer"
+  
+  if [[ ! -d "$repo_dir" ]]; then
+    log_info "Cloning repository..."
+    git clone https://github.com/OrcaSlicer/OrcaSlicer "$repo_dir" 2>&1 | tee -a "$LOG_FILE" || {
+      log_error "Git clone failed"
       return 1
-    fi
-    popdir
-    return $?
-}
-
-
-# Install Flatpak
-install_flatpak()
-{
-  # Download the Flatpak file
-  dl_file "$FLATPACK_URL" "$DL_DIR"
-
-  log_info "Installing Orca Slicer Flatpak"
-  local _flatpak_file
-  _filename="$DL_DIR/$(basename "$FLATPACK_URL")"
-
-  if [[ ! -f "$_flatpak_file" ]]; then
-    handle_error "Flatpak file not found: $_flatpak_file"
+    }
   fi
+  
+  pushd "$repo_dir" >/dev/null || return 1
+  
+  log_info "Running DockerBuild.sh..."
+  ./scripts/DockerBuild.sh 2>&1 | tee -a "$LOG_FILE" || {
+    log_error "DockerBuild.sh failed"
+    popd >/dev/null
+    return 1
+  }
+  
+  log_info "Running DockerRun.sh..."
+  ./scripts/DockerRun.sh 2>&1 | tee -a "$LOG_FILE" || {
+    log_error "DockerRun.sh failed"
+    popd >/dev/null
+    return 1
+  }
+  
+  popd >/dev/null
+  log_success "Docker build completed"
+}
 
-  if ! flatpak install --user "$_flatpak_file" -y; then
-    handle_error "Failed to install OrcaSlicer Flatpak"
+# Build from source on Linux
+build_linux() {
+  log_info "Building OrcaSlicer from source on Linux..."
+  
+  local repo_dir="${DL_DIR}/OrcaSlicer"
+  
+  if [[ ! -d "$repo_dir" ]]; then
+    log_info "Cloning repository..."
+    git clone https://github.com/OrcaSlicer/OrcaSlicer "$repo_dir" 2>&1 | tee -a "$LOG_FILE" || {
+      log_error "Git clone failed"
+      return 1
+    }
   fi
-
-  log_info "OrcaSlicer Flatpak installed successfully"
+  
+  pushd "$repo_dir" >/dev/null || return 1
+  
+  log_info "Running build_linux.sh -dsti..."
+  ./build_linux.sh -dsti 2>&1 | tee -a "$LOG_FILE" || {
+    log_error "Build failed"
+    popd >/dev/null
+    return 1
+  }
+  
+  popd >/dev/null
+  log_success "Linux build completed"
 }
 
+# Main installation menu
+main() {
+  case "${1:-}" in
+    flatpak)
+      install_flatpak
+      ;;
+    appimage)
+      install_appimage
+      ;;
+    docker)
+      build_docker
+      ;;
+    linux)
+      build_linux
+      ;;
+    *)
+      cat << EOF
+Usage: $0 {flatpak|appimage|docker|linux}
 
-Appimage()
-{
-  log_info "Installing Orca Slicer Appimage"
-  dl_file "$APPIMAGE_URL"
+Installation methods:
+  flatpak - Install Flatpak version
+  appimage - Download AppImage
+  docker   - Build from source with Docker
+  linux    - Build from source on Linux
+
+Logs are saved to: $LOG_DIR
+EOF
+      exit 1
+      ;;
+  esac
   
-  cd_origin
+  log_success "=== Installation completed successfully ==="
 }
 
-build_docker()
-{
-  log_info "Building Orca Slicer with docker"
-  pushdir "$DL_DIR"
-
-  #  using Docker
-  log_info "Cloning Source"
-  git clone https://github.com/OrcaSlicer/OrcaSlicer \
-  && pushdir "OrcaSlicer" || ( log_error "pushd Failure"; popdir ; return 1 )
-  ./scripts/DockerBuild.sh || ( log_error "Failed 'DockerBuild.sh' failed"; popdir -N 2; exit 1 )
-  ./scripts/DockerRun.sh || ( log_error "Failed 'DockerRun.sh' failed"; popdir -N 2; exit 1 )
-
-  log_info "Build Success"
-  popdir -N 2
-}
-
-build_linux()
-{
-  log_info "Building Orca Slicer"
-  pushdir "$DL_DIR"
-
-  #  using Docker
-  log_info "Cloning Source"
-  
-  git clone https://github.com/OrcaSlicer/OrcaSlicer \
-  && pushdir "OrcaSlicer" || ( log_error "pushd Failure"; popdir ; return 1 )
-  
-  log_info "Running 'build_linux.sh -dsti'"
-  
-  ./build_linux.sh -dsti || ( log_error "Build Error"; popdir -N 2 ; exit 1 )
-
-  popdir -N 2
-}
+main "$@"

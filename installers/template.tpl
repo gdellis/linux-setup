@@ -1,60 +1,54 @@
-# ------------------------------------------------------------
-# region Script Setup
-# ------------------------------------------------------------
-# Uncomment for verbose debugging
-# set -x 
+#!/usr/bin/env bash
 
-# ------------------------------------------------------------
-# Setup Directory Variables
-# ------------------------------------------------------------
-# region
-SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
+set -euo pipefail
 
-# ------------------------------------------------------------
-# region Determine top‑level directory
-# ------------------------------------------------------------
-# 1️⃣ Prefer Git if we are inside a repo
-TOP="$(git rev-parse --show-toplevel 2>/dev/null)"
+# Configuration
+APP_NAME=the_app_name
+VERSION="2.3.1"
+BASE_URL="https://github.com/OrcaSlicer/OrcaSlicer/releases/download/${VERSION}"
+DL_DIR="${HOME}/downloads/AMM_NAME"
+LOG_DIR="${HOME}/logs/$APP_NAME"
+LOG_FILE="${LOG_DIR}/install_$(date +%Y%m%d_%H%M%S).log"
 
-# 2️⃣ If not a Git repo, look for a known marker (e.g., .topdir)
-if [[ -z "$TOP" ]]; then
-  # Resolve the directory where this script resides
-  SCRIPT_DIR="$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
+# Color codes
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+NC='\033[0m' # No Color
 
-  # Walk upward until we find .topdir or stop at /
-  DIR="$SCRIPT_DIR"
-  while [[ "$DIR" != "/" ]]; do
-    if [[ -f "$DIR/.topdir" ]]; then
-      TOP="$DIR"
-      break
-    fi
-    DIR="$(dirname "$DIR")"
-  done
-fi
+# Ensure directories exist
+mkdir -p "$DL_DIR"
+mkdir -p "$LOG_DIR"
 
-# 3️⃣ Give up with a clear error if we still have no root
-if [[ -z "$TOP" ]]; then
-  echo "❌  Unable to locate project root. Ensure you are inside a Git repo or that a .topdir file exists."
-  exit 1
-fi
+# Logging functions with color and file output
+log_info() {
+  local msg
+  msg="[$(date '+%Y-%m-%d %H:%M:%S')] [INFO] $*"
+  echo -e "${GREEN}${msg}${NC}" | tee -a "$LOG_FILE" >/dev/null
+  echo -e "${GREEN}${msg}${NC}"
+}
 
-export TOP
-log_info "(setup_bash.sh) Project root resolved to: $TOP"
-# ------------------------------------------------------------
-# endregion
-# ------------------------------------------------------------
+log_error() {
+  local msg
+  msg="[$(date '+%Y-%m-%d %H:%M:%S')] [ERROR] $*"
+  echo -e "${RED}${msg}${NC}" | tee -a "$LOG_FILE" >/dev/null
+  echo -e "${RED}${msg}${NC}" >&2
+}
 
-# ------------------------------------------------------------
-# region Setup Logger
-# ------------------------------------------------------------
-LIB_DIR="$TOP/lib"
+log_success() {
+  local msg
+  msg="[$(date '+%Y-%m-%d %H:%M:%S')] [SUCCESS] $*"
+  echo -e "${BLUE}${msg}${NC}" | tee -a "$LOG_FILE" >/dev/null
+  echo -e "${BLUE}${msg}${NC}"
+}
 
-# Source Logger
-source "$LIB_DIR/logging.sh" || exit 1
-# ------------------------------------------------------------
-# endregion
-# ------------------------------------------------------------
+log_warning() {
+  local msg
+  msg="[$(date '+%Y-%m-%d %H:%M:%S')] [WARNING] $*"
+  echo -e "${YELLOW}${msg}${NC}" | tee -a "$LOG_FILE" >/dev/null
+  echo -e "${YELLOW}${msg}${NC}"
+}
 
-# ------------------------------------------------------------
-# endregion
-# ------------------------------------------------------------
+log_info "=== $APP_NAME Installer Started ==="
+log_info "Log file: $LOG_FILE"
