@@ -14,7 +14,7 @@ BASE_URL="https://github.com/OrcaSlicer/OrcaSlicer/releases/download/${VERSION}"
 # region
 
 APP_NAME=orcaslicer
-DL_DIR="${HOME}/downloads/$AMM_NAME"
+DL_DIR="${HOME}/Downloads/$APP_NAME"
 LOG_DIR="${HOME}/logs/$APP_NAME"
 LOG_FILE="${LOG_DIR}/install_$(date +%Y%m%d_%H%M%S).log"
 

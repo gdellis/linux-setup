@@ -7,7 +7,7 @@ set -euo pipefail
 # ------------------------------------------------------------
 # region
 APP_NAME=ollama
-DL_DIR="${HOME}/downloads/AMM_NAME"
+DL_DIR="${HOME}/downloads/$APP_NAME"
 LOG_DIR="${HOME}/logs/$APP_NAME"
 LOG_FILE="${LOG_DIR}/install_$(date +%Y%m%d_%H%M%S).log"
 
