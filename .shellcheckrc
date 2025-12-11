@@ -1,2 +1,4 @@
 source-path=SCRIPTDIR
 source-path=SCRIPTDIR/lib
+
+disable=SC2155

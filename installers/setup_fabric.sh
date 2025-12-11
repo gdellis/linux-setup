@@ -14,7 +14,6 @@ readonly LOG_FILE="${LOG_DIR}/$(date +%Y%m%d_%H%M%S)_${APP_NAME}.log"
 readonly RED='\033[0;31m'
 readonly GREEN='\033[0;32m'
 readonly YELLOW='\033[1;33m'
-readonly BLUE='\033[0;34m'
 readonly NC='\033[0m' # No Color
 
 # Ensure directories exist
@@ -49,11 +48,6 @@ set -o nounset   # Disallow expansion of unset variables
 # ------------------------------------------------------------
 # region Script Setup
 # ------------------------------------------------------------
-
-# ------------------------------------------------------------
-# Setup Directory Variables
-# ------------------------------------------------------------
-SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 
 # ------------------------------------------------------------
 # Main Functions
@@ -225,6 +219,7 @@ EOF
 
     # Add sourcing to .bashrc if not already present
     local bashrc_file="$HOME/.bashrc"
+    # shellcheck disable=SC2016
     local sourcing_line='test -f "$HOME/.fabric.env" && source "$HOME/.fabric.env"'
     
     if ! grep -qF "$sourcing_line" "$bashrc_file"; then

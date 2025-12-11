@@ -2,12 +2,12 @@
 
 set -euo pipefail
 SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
-
 # ------------------------------------------------------------
 # Setup Logging
 # ------------------------------------------------------------
 # region
-readonly APP_NAME=fabric
+SCRIPT_NAME=$(basename "$0")
+SCRIPT_NAME=${SCRIPT_NAME%.*} 
 readonly DL_DIR="${HOME}/downloads/$APP_NAME"
 readonly LOG_DIR="${HOME}/logs/$APP_NAME"
 readonly LOG_FILE="${LOG_DIR}/$(date +%Y%m%d_%H%M%S)_${APP_NAME}.log"
@@ -20,7 +20,6 @@ mkdir -p "$LOG_DIR"
 readonly RED='\033[0;31m'
 readonly GREEN='\033[0;32m'
 readonly YELLOW='\033[1;33m'
-readonly BLUE='\033[0;34m'
 readonly NC='\033[0m' # No Color
 
 # Logging functions with color and file output
@@ -31,15 +30,20 @@ log()
     echo -e "$msg" | tee -a "$LOG_FILE"
 }
 
+# shellcheck disable=SC2329
 log_info() { log "${GREEN}[INFO]${NC} $*";}
+# shellcheck disable=SC2329
 log_error() { log "${RED}[ERROR]${NC} $*";}
+# shellcheck disable=SC2329
 log_success() { log "${GREEN}[SUCCESS]${NC} $*";}
+# shellcheck disable=SC2329
 log_warning() { log "${YELLOW}[WARNING]${NC} $*";}
 
 log_info "=== $APP_NAME Installer Started ==="
 log_info "Log file: $LOG_FILE"
 # endregion
 
+# shellcheck disable=SC2329
 cleanup()
 {
     local exit_code=$?
@@ -68,6 +72,7 @@ cleanup()
     while popd &>/dev/null; do :; done
     
     echo "Cleanup complete"
+    # shellcheck disable=SC2086
     exit $exit_code
 
 }
@@ -76,11 +81,30 @@ cleanup()
 trap cleanup EXIT INT TERM ERR
 
 pushd "$SCRIPT_DIR" || ( log_error "Could not change directories to '$SCRIPT_DIR'"; exit 1 )
+TEMPLATE=template.tpl
 NEW_SCRIPT="$1"
 
 log_info "Creating new installer script '$NEW_SCRIPT'"
 
-if cp template.tpl "$NEW_SCRIPT";then
+# Check if the script is named correctly
+if [[ "$NEW_SCRIPT" != setup_*.sh ]]; then
+    _retries=3
+    while $NEW_SCRIPT != setup_*.sh; do
+        log_error "The script name '$NEW_SCRIPT' does not follow the naming convention 'setup_*.sh'"
+        
+        echo "Provide a new name for the script: "
+        read -r NEW_SCRIPT
+
+        if (( _retries-- == 0 )); then
+           log_error "Too many retries. Exiting."
+           exit 1
+        fi
+    done
+fi
+
+# Create a new script from the template
+
+if cp "$TEMPLATE" "$NEW_SCRIPT";then
     log_success "The new script '$NEW_SCRIPT' is now ready"
     exit 1
 else
