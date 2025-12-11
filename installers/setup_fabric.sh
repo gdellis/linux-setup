@@ -1,6 +1,37 @@
 #!/usr/bin/env bash
+#
+# setup_fabric.sh - Fabric AI Installation Script
+# Description: Installs and configures Fabric AI with pattern management and YouTube integration
+# Usage: ./setup_fabric.sh [OPTIONS]
+#        -y, --yes, --non-interactive    Skip confirmation prompts
+#        -h, --help                      Show help message
+#
 
 set -euo pipefail
+
+# Parse command line arguments
+NON_INTERACTIVE=false
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        -y|--yes|--non-interactive)
+            NON_INTERACTIVE=true
+            shift
+            ;;
+        -h|--help)
+            echo "Usage: $0 [OPTIONS]"
+            echo ""
+            echo "Options:"
+            echo "  -y, --yes, --non-interactive    Skip confirmation prompts"
+            echo "  -h, --help                      Show this help message"
+            exit 0
+            ;;
+        *)
+            echo "Unknown option: $1"
+            echo "Use --help for usage information"
+            exit 1
+            ;;
+    esac
+done
 
 # Get script directory and source logging library
 SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
@@ -22,6 +53,9 @@ mkdir -p "$LOG_DIR"
 
 log_info "=== $APP_NAME Installer Started ==="
 log_info "Log file: $LOG_FILE"
+if [[ "$NON_INTERACTIVE" == "true" ]]; then
+    log_info "Running in non-interactive mode"
+fi
 # endregion
 
 # ------------------------------------------------------------
@@ -112,11 +146,24 @@ create_config() {
 
     # Check if config file already exists
     if [ -f "$env_file" ]; then
-        log_warn "Fabric config file '$env_file' already exists"
-        read -rp "Do you want to overwrite it? [Y/n]: " result
-        if [[ "$result" =~ ^[Nn]$ ]] || [[ -n "$result" && ! "$result" =~ ^[Yy]$ ]]; then
-            log_info "Skipping config creation"
-            return 0
+        if [[ "$NON_INTERACTIVE" == "true" ]]; then
+            log_info "Config file exists, backing up and overwriting (non-interactive mode)"
+            if ! backup_file "$env_file"; then
+                log_error "Failed to backup config file"
+                return 1
+            fi
+        else
+            log_warn "Fabric config file '$env_file' already exists"
+            read -rp "Do you want to overwrite it? [Y/n]: " result
+            if [[ "$result" =~ ^[Nn]$ ]] || [[ -n "$result" && ! "$result" =~ ^[Yy]$ ]]; then
+                log_info "Skipping config creation"
+                return 0
+            fi
+            # Backup before overwriting
+            if ! backup_file "$env_file"; then
+                log_error "Failed to backup config file"
+                return 1
+            fi
         fi
     fi
 
@@ -156,10 +203,23 @@ setup_env() {
 
     # Check if environment file already exists
     if [ -f "$env_file" ]; then
-        log_warn "Fabric environment file '$env_file' already exists"
-        read -rp "Do you want to overwrite it [Y|n]: " result
-        if [[ "$result" != "y" ]] && [[ "$result" != "Y" ]] && [[ -n "$result" ]]; then
-            return 0
+        if [[ "$NON_INTERACTIVE" == "true" ]]; then
+            log_info "Environment file exists, backing up and overwriting (non-interactive mode)"
+            if ! backup_file "$env_file"; then
+                log_error "Failed to backup environment file"
+                return 1
+            fi
+        else
+            log_warn "Fabric environment file '$env_file' already exists"
+            read -rp "Do you want to overwrite it [Y|n]: " result
+            if [[ "$result" != "y" ]] && [[ "$result" != "Y" ]] && [[ -n "$result" ]]; then
+                return 0
+            fi
+            # Backup before overwriting
+            if ! backup_file "$env_file"; then
+                log_error "Failed to backup environment file"
+                return 1
+            fi
         fi
     fi
 

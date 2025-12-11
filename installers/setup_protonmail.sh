@@ -1,4 +1,10 @@
 #!/usr/bin/env bash
+#
+# setup_protonmail.sh - Proton Mail Desktop Application Installation Script
+# Description: Downloads and installs the Proton Mail beta desktop client for Linux
+# Usage: ./setup_protonmail.sh
+#
+
 set -euo pipefail
 
 # Save and change directories
@@ -27,7 +33,6 @@ log_info "=== $APP_NAME Installer Started ==="
 log_info "Log file: $LOG_FILE"
 # endregion
 
-# shellcheck disable=SC2329
 cleanup()
 {
     local exit_code=$?
@@ -68,8 +73,8 @@ trap cleanup EXIT INT TERM ERR
 
 log_info "📥 Downloading Proton Mail"
 
-readonly URL="https://proton.me/download/mail/linux/1.11.0/ProtonMail-desktop-beta.deb"
-readonly FILE="$DL_DIR/protonmail.deb"
+readonly PROTON_URL="https://proton.me/download/mail/linux/1.11.0/ProtonMail-desktop-beta.deb"
+readonly PROTON_FILE="$DL_DIR/protonmail.deb"
 
 # TODO: Add checksum verification once Proton provides official checksums
 # ProtonMail does not currently provide SHA256 checksums on their download page
@@ -77,11 +82,11 @@ readonly FILE="$DL_DIR/protonmail.deb"
 #   sha256sum "$FILE"
 # Then compare with checksum from Proton's official communication channels
 
-if curl --output "$FILE" "$URL";then
+if curl --output "$PROTON_FILE" "$PROTON_URL";then
     log_warning "Note: Checksum verification not available for ProtonMail downloads"
-    log_info "Download complete. For manual verification, run: sha256sum $FILE"
+    log_info "Download complete. For manual verification, run: sha256sum $PROTON_FILE"
 
-    sudo nala update && sudo nala install -y "$FILE"
+    sudo nala update && sudo nala install -y "$PROTON_FILE"
     log_success "protonmail installed successfully"
     exit 0
 else log_error "Error downloading package"

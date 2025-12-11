@@ -1,4 +1,11 @@
 #!/usr/bin/env bash
+#
+# setup_syncthing.sh - Syncthing File Synchronization Installation Script
+# Description: Configures APT repository and installs Syncthing with stable or candidate releases
+# Usage: ./setup_syncthing.sh [stable|candidate]
+#        Default: stable
+#
+
 set -euo pipefail
 
 # Save and change directories
@@ -27,7 +34,6 @@ log_info "=== $APP_NAME Installer Started ==="
 log_info "Log file: $LOG_FILE"
 # endregion
 
-# shellcheck disable=SC2329
 cleanup()
 {
     local exit_code=$?
@@ -61,8 +67,9 @@ readonly PREFERENCES_FILE="/etc/apt/preferences.d/syncthing.pref"
 check_root() {
     if [[ $EUID -eq 0 ]]; then
         log_error "This script should not be run as root. It will use sudo when needed."
-        exit 1
+        return 1
     fi
+    return 0
 }
 
 # ------------------------------------------------------------
@@ -75,7 +82,7 @@ add_gpg_key() {
     # Create keyrings directory if it doesn't exist
     if ! sudo mkdir -p /etc/apt/keyrings; then
         log_error "Failed to create keyrings directory"
-        exit 1
+        return 1
     fi
 
     # Download and install the GPG key
@@ -83,7 +90,7 @@ add_gpg_key() {
         log_success "GPG key added successfully"
     else
         log_error "Failed to download GPG key"
-        exit 1
+        return 1
     fi
 }
 
@@ -99,14 +106,14 @@ setup_repository() {
         repo_line="deb [signed-by=$KEYRING_PATH] https://apt.syncthing.net/ syncthing candidate"
     else
         log_error "Invalid channel: $channel. Must be 'stable' or 'candidate'"
-        exit 1
+        return 1
     fi
 
     if echo "$repo_line" | sudo tee "$SOURCES_LIST" > /dev/null; then
         log_success "Repository configured successfully"
     else
         log_error "Failed to configure repository"
-        exit 1
+        return 1
     fi
 }
 
@@ -129,7 +136,7 @@ install_syncthing() {
 
     if ! sudo nala update; then
         log_error "Failed to update package lists"
-        exit 1
+        return 1
     fi
 
     log_info "Installing Syncthing..."
@@ -138,7 +145,7 @@ install_syncthing() {
         log_success "Syncthing installed successfully"
     else
         log_error "Failed to install Syncthing"
-        exit 1
+        return 1
     fi
 }
 
@@ -147,7 +154,9 @@ install_syncthing() {
 # ------------------------------------------------------------
 
 main() {
-    check_root
+    if ! check_root; then
+        exit 1
+    fi
 
     # Determine channel (default to stable)
     local channel="stable"
@@ -162,16 +171,25 @@ main() {
     log_info "Starting Syncthing installation (channel: $channel)..."
 
     # Add GPG key
-    add_gpg_key
+    if ! add_gpg_key; then
+        log_error "Failed to add GPG key"
+        exit 1
+    fi
 
     # Setup repository
-    setup_repository "$channel"
+    if ! setup_repository "$channel"; then
+        log_error "Failed to setup repository"
+        exit 1
+    fi
 
-    # Setup package priority
+    # Setup package priority (non-critical)
     setup_package_priority
 
     # Install Syncthing
-    install_syncthing
+    if ! install_syncthing; then
+        log_error "Failed to install Syncthing"
+        exit 1
+    fi
 
     log_success "===================================="
     log_success "Syncthing installation completed!"

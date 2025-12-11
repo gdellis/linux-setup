@@ -1,4 +1,10 @@
 #!/usr/bin/env bash
+#
+# setup_protonvpn.sh - Proton VPN Installation Script
+# Description: Downloads, verifies, and installs Proton VPN with GNOME desktop integration
+# Usage: ./setup_protonvpn.sh
+#
+
 set -euo pipefail
 
 # Save and change directories
@@ -27,7 +33,6 @@ log_info "=== $APP_NAME Installer Started ==="
 log_info "Log file: $LOG_FILE"
 # endregion
 
-# shellcheck disable=SC2329
 cleanup()
 {
     local exit_code=$?
@@ -68,17 +73,17 @@ trap cleanup EXIT INT TERM ERR
 
 log_info "📥 Downloading Proton VPN"
 
-readonly URL="https://repo.protonvpn.com/debian/dists/stable/main/binary-all/protonvpn-stable-release_1.0.8_all.deb"
-readonly FILE="$DL_DIR/protonvpn.deb"
+readonly PROTON_URL="https://repo.protonvpn.com/debian/dists/stable/main/binary-all/protonvpn-stable-release_1.0.8_all.deb"
+readonly PROTON_FILE="$DL_DIR/protonvpn.deb"
 
-if curl --output "$FILE" "$URL";then
+if curl --output "$PROTON_FILE" "$PROTON_URL";then
     log_info "Verifying download integrity"
 
     # Expected SHA256 checksum for protonvpn-stable-release_1.0.8_all.deb
     readonly EXPECTED_SHA256="0b14e71586b22e498eb20926c48c7b434b751149b1f2af9902ef1cfe6b03e180"
 
     # Calculate the actual checksum
-    actual_sha256=$(sha256sum "$FILE" | awk '{print $1}')
+    actual_sha256=$(sha256sum "$PROTON_FILE" | awk '{print $1}')
 
     if [[ "$actual_sha256" != "$EXPECTED_SHA256" ]]; then
         log_error "Checksum verification failed!"
@@ -89,7 +94,7 @@ if curl --output "$FILE" "$URL";then
 
     log_success "Checksum verification passed"
 
-    sudo nala install -y "$FILE"
+    sudo nala install -y "$PROTON_FILE"
     sudo nala update
 
     sudo nala -y install proton-vpn-gnome-desktop

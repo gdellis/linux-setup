@@ -1,5 +1,9 @@
 #!/usr/bin/env bash
-# setup_orcaslicer.sh - Install OrcaSlicer with colored logging and file logging
+#
+# setup_orcaslicer.sh - OrcaSlicer 3D Printing Software Installation Script
+# Description: Installs OrcaSlicer via Flatpak, AppImage, or builds from source
+# Usage: ./setup_orcaslicer.sh {flatpak|appimage|docker|linux}
+#
 
 set -euo pipefail
 

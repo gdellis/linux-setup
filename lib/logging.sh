@@ -1,4 +1,9 @@
 #!/usr/bin/env bash
+#
+# logging.sh - Shared Logging Library
+# Description: Provides colored logging functions with dual output (terminal + file) and backup functionality
+# Usage: Source this file in your scripts: source "$SCRIPT_DIR/../lib/logging.sh"
+#
 
 # Logging configuration
 LOG_LEVEL=${LOG_LEVEL:-INFO}
@@ -78,4 +83,25 @@ handle_error()
     local _msg="$1"
     log_error "$_msg"
     exit 1
+}
+
+# Backup file function - creates timestamped backup before overwriting
+backup_file()
+{
+    local file="$1"
+
+    if [[ ! -f "$file" ]]; then
+        # File doesn't exist, no backup needed
+        return 0
+    fi
+
+    local backup_file="${file}.backup.$(date +%Y%m%d_%H%M%S)"
+
+    if cp "$file" "$backup_file"; then
+        log_info "Backed up existing file to: $backup_file"
+        return 0
+    else
+        log_error "Failed to create backup of $file"
+        return 1
+    fi
 }

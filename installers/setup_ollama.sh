@@ -1,4 +1,9 @@
 #!/usr/bin/env bash
+#
+# setup_ollama.sh - Ollama Installation and Model Download Script
+# Description: Installs Ollama and downloads configured cloud and local AI models
+# Usage: ./setup_ollama.sh
+#
 
 set -euo pipefail
 
@@ -28,7 +33,7 @@ log_info "Log file: $LOG_FILE"
 # Configuration
 # ------------------------------------------------------------
 
-cloud_models=(
+readonly cloud_models=(
     "ministral-3:3b-cloud"
     "ministral-3:8b-cloud"
     "ministral-3:14b-cloud"
@@ -46,7 +51,7 @@ cloud_models=(
     "gpt-oss:20b-cloud"
 )
 
-local_models=(
+readonly local_models=(
     "qwen2.5-coder:1.5b"
     "nomic-embed-text:latest"
     "qwen3-embedding:latest"
