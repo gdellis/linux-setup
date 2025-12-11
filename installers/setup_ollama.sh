@@ -23,11 +23,19 @@ mkdir -p "$DL_DIR"
 mkdir -p "$LOG_DIR"
 
 # Logging functions with color and file output
-log()
+log() 
 {
-    local msg
-    msg="[$(date '+%Y-%m-%d %H:%M:%S')] $*"
-    echo -e "$msg" | tee -a "$LOG_FILE"
+    local colored_msg plain_msg
+    colored_msg="[$(date '+%Y-%m-%d %H:%M:%S')] $*"
+    
+    # Strip ANSI color codes for log file
+    plain_msg=$(echo -e "$colored_msg" | sed -E 's/\x1B\[([0-9]{1,2}(;[0-9]{1,2})?)?[mK]//g')
+    
+    # Output to terminal (with colors)
+    echo -e "$colored_msg"
+    
+    # Output to log file (without colors)
+    echo "$plain_msg" >> "$LOG_FILE"
 }
 
 log_info() { log "${GREEN}[INFO]${NC} $*";}

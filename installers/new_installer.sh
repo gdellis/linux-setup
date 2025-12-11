@@ -1,13 +1,21 @@
 #!/usr/bin/env bash
 
 set -euo pipefail
-SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
+
+readonly ORIG_PWD=$(pwd)
+readonly SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
+# Check argument first
+if [[ $# -eq 0 ]]; then
+    echo "Usage: $0 <new_script_name>"
+    exit 1
+fi
+
+
 # ------------------------------------------------------------
 # Setup Logging
 # ------------------------------------------------------------
 # region
-SCRIPT_NAME=$(basename "$0")
-SCRIPT_NAME=${SCRIPT_NAME%.*} 
+APP_NAME=$(basename "$0" .sh)  # Directly strips .sh extension
 readonly DL_DIR="${HOME}/downloads/$APP_NAME"
 readonly LOG_DIR="${HOME}/logs/$APP_NAME"
 readonly LOG_FILE="${LOG_DIR}/$(date +%Y%m%d_%H%M%S)_${APP_NAME}.log"
@@ -23,11 +31,19 @@ readonly YELLOW='\033[1;33m'
 readonly NC='\033[0m' # No Color
 
 # Logging functions with color and file output
-log()
+log() 
 {
-    local msg
-    msg="[$(date '+%Y-%m-%d %H:%M:%S')] $*"
-    echo -e "$msg" | tee -a "$LOG_FILE"
+    local colored_msg plain_msg
+    colored_msg="[$(date '+%Y-%m-%d %H:%M:%S')] $*"
+    
+    # Strip ANSI color codes for log file
+    plain_msg=$(echo -e "$colored_msg" | sed -E 's/\x1B\[([0-9]{1,2}(;[0-9]{1,2})?)?[mK]//g')
+    
+    # Output to terminal (with colors)
+    echo -e "$colored_msg"
+    
+    # Output to log file (without colors)
+    echo "$plain_msg" >> "$LOG_FILE"
 }
 
 # shellcheck disable=SC2329
@@ -50,28 +66,10 @@ cleanup()
     
     log_info "Cleaning up..."
     
-    # Remove temporary files/directories
-    # if [[ -n "${TEMP_DIR:-}" && -d "$TEMP_DIR" ]]; then
-    #     rm -rf "$TEMP_DIR"
-    # fi
+    # Return to original directory
+    cd "$ORIG_PWD" 2>/dev/null || true
     
-    # # Kill background processes spawned by this script
-    # if [[ -n "${BG_PIDS:-}" ]]; then
-    #     for pid in $BG_PIDS; do
-    #         kill "$pid" 2>/dev/null || true
-    #     done
-    # fi
-    
-    # Close file descriptors if opened
-    # exec 3>&- 4>&- 2>/dev/null || true
-    
-    # Restore terminal settings if modified
-    # stty sane 2>/dev/null || true
-
-    # Return to original directory if pushd was used
-    while popd &>/dev/null; do :; done
-    
-    echo "Cleanup complete"
+    log_success "Cleanup complete"
     # shellcheck disable=SC2086
     exit $exit_code
 
@@ -80,34 +78,41 @@ cleanup()
 # Set trap for various exit signals
 trap cleanup EXIT INT TERM ERR
 
-pushd "$SCRIPT_DIR" || ( log_error "Could not change directories to '$SCRIPT_DIR'"; exit 1 )
-TEMPLATE=template.tpl
+# Validate script name
 NEW_SCRIPT="$1"
+if [[ "$NEW_SCRIPT" != setup_*.sh ]]; then
+    log_error "Script name must follow pattern 'setup_*.sh'" >&2
+    exit 1
+fi
+
+# Change directories to script directory
+if ! cd "$SCRIPT_DIR"; then
+    log_error "Cannot change to script directory: $SCRIPT_DIR" >&2
+    exit 1
+fi
+
+# Check if template exists
+TEMPLATE="template.tpl"
+
+if [[ ! -f "$TEMPLATE" ]]; then
+    log_error "Template file '$TEMPLATE' not found"
+    exit 1
+fi
+
+# Check if target exists
+if [[ -f "$NEW_SCRIPT" ]]; then
+    log_error "Script '$NEW_SCRIPT' already exists"
+    exit 1
+fi
 
 log_info "Creating new installer script '$NEW_SCRIPT'"
 
-# Check if the script is named correctly
-if [[ "$NEW_SCRIPT" != setup_*.sh ]]; then
-    _retries=3
-    while $NEW_SCRIPT != setup_*.sh; do
-        log_error "The script name '$NEW_SCRIPT' does not follow the naming convention 'setup_*.sh'"
-        
-        echo "Provide a new name for the script: "
-        read -r NEW_SCRIPT
-
-        if (( _retries-- == 0 )); then
-           log_error "Too many retries. Exiting."
-           exit 1
-        fi
-    done
-fi
-
-# Create a new script from the template
-
-if cp "$TEMPLATE" "$NEW_SCRIPT";then
-    log_success "The new script '$NEW_SCRIPT' is now ready"
-    exit 1
-else
-    log_error "The new script '$NEW_SCRIPT' could not be created"
+# Create script
+if cp "$TEMPLATE" "$NEW_SCRIPT"; then
+    chmod +x "$NEW_SCRIPT"  # Make it executable
+    log_success "Created '$NEW_SCRIPT'"
     exit 0
+else
+    log_error "Failed to create '$NEW_SCRIPT'"
+    exit 1
 fi

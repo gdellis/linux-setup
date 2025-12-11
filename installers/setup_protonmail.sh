@@ -6,6 +6,9 @@ readonly ORIG_PWD=$(pwd)
 
 # shellcheck disable=SC2034
 SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
+
+
+
 # ------------------------------------------------------------
 # Setup Logging
 # ------------------------------------------------------------
@@ -27,11 +30,19 @@ readonly YELLOW='\033[1;33m'
 readonly NC='\033[0m' # No Color
 
 # Logging functions with color and file output
-log()
+log() 
 {
-    local msg
-    msg="[$(date '+%Y-%m-%d %H:%M:%S')] $*"
-    echo -e "$msg" | tee -a "$LOG_FILE"
+    local colored_msg plain_msg
+    colored_msg="[$(date '+%Y-%m-%d %H:%M:%S')] $*"
+    
+    # Strip ANSI color codes for log file
+    plain_msg=$(echo -e "$colored_msg" | sed -E 's/\x1B\[([0-9]{1,2}(;[0-9]{1,2})?)?[mK]//g')
+    
+    # Output to terminal (with colors)
+    echo -e "$colored_msg"
+    
+    # Output to log file (without colors)
+    echo "$plain_msg" >> "$LOG_FILE"
 }
 
 # shellcheck disable=SC2329
@@ -72,7 +83,7 @@ cleanup()
     # Restore terminal settings if modified
     # stty sane 2>/dev/null || true
 
-    # Return to original directory if pushd was used
+    # Return to original directory
     cd "$ORIG_PWD" 2>/dev/null || true
     
     echo "Cleanup complete"
@@ -86,4 +97,17 @@ trap cleanup EXIT INT TERM ERR
 
 # ------------------------------------------------------------
 
-# Add the rest of your script below
+log_info "📥 Downloading Proton Mail"
+
+readonly URL="https://proton.me/download/mail/linux/1.11.0/ProtonMail-desktop-beta.deb"
+readonly FILE="$DL_DIR/protonmail.deb"
+
+if curl --output "$FILE" "$URL";then
+    sudo nala update && sudo nala install -y $FILE 
+    log_success "protonmail installed successfully"
+    exit 0
+else log_error "Error downloading package"
+    exit 1
+fi
+
+exit 0
