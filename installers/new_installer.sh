@@ -59,6 +59,17 @@ log_info "=== $APP_NAME Installer Started ==="
 log_info "Log file: $LOG_FILE"
 # endregion
 
+# ------------------------------------------------------------
+# Platform Check - Linux Only
+# ------------------------------------------------------------
+if [[ "$(uname -s)" != "Linux" ]]; then
+    log_error "This installer generator is only supported on Linux platforms"
+    log_error "Detected OS: $(uname -s)"
+    log_error "Please run this script on a Linux system"
+    exit 1
+fi
+log_info "Platform check passed: Linux"
+
 # shellcheck disable=SC2329
 cleanup()
 {

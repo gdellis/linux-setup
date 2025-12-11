@@ -29,7 +29,7 @@
     - Desktop apps: `setup_orcaslicer.sh`, `setup_protonmail.sh`, `setup_protonvpn.sh`, `setup_syncthing.sh`
   - **System Tools**:
     - `check_dependencies.sh`: Standalone dependency checker/installer
-    - `new_installer.sh`: Template-based installer generator
+    - `new_installer.sh`: Template-based installer generator (Linux only)
     - `demo_tui.sh`: Interactive TUI demonstration
   - **Testing & CI/CD**:
     - `tests/`: Bats test suite for core libraries
@@ -61,7 +61,7 @@
     - `lib/dependencies.sh`: 15+ dependency management functions
   - **Installer Template**:
     - `installers/template.tpl`: Template for creating new installers
-    - `installers/new_installer.sh`: Generator script for new installers
+    - `installers/new_installer.sh`: Generator script for new installers (Linux only)
   - **Documentation**:
     - `README.md`: Project overview and quick start
     - `TUI_GUIDE.md`: Complete TUI menu documentation
@@ -154,7 +154,7 @@ source "$SCRIPT_DIR/../lib/dependencies.sh"
 **Benefits**: DRY principle, consistent behavior, ~438 lines of code eliminated
 
 ### 2. Template-Based Generation
-New installers created from `template.tpl`:
+New installers created from `template.tpl` (Linux only):
 ```bash
 ./installers/new_installer.sh setup_newapp.sh
 ```
@@ -257,10 +257,11 @@ backup_file "$config_file"  # Creates .backup.YYYYMMDD_HHMMSS
 ## Extension Points
 
 ### Adding New Installers
-1. Use the generator:
+1. Use the generator (Linux only):
    ```bash
    ./installers/new_installer.sh setup_newapp.sh
    ```
+   Note: The installer generator only runs on Linux platforms.
 2. Edit the generated script:
    - Set download URLs and checksums
    - Implement installation logic

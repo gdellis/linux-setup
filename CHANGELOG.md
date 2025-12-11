@@ -56,6 +56,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Code quality**: Enforced `readonly` for all constant variables across all installers
 - **Directory naming**: Standardized download directory to lowercase `downloads/` (was inconsistent with `Downloads/` in setup_orcaslicer.sh)
 - **Backup before overwrite**: `setup_fabric.sh` now backs up existing configuration files before overwriting
+- **Platform restriction**: `new_installer.sh` now includes platform check to ensure it only runs on Linux systems
 
 ### Fixed
 - **Typo**: Fixed `lot_warning` → `log_warning` in `setup_ollama.sh:173`
