@@ -8,11 +8,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Automatic Dependency Management**:
+  - Created `lib/dependencies.sh` utility library for dependency checking and installation
+  - Added `check_dependencies.sh` script for system-wide dependency verification
+  - Automatic dependency checking in `menu.sh` on startup
+  - Auto-installation of missing dependencies (curl, wget, nala) with user consent
+  - Comprehensive DEPENDENCIES.md documentation
+- **Nala Package Manager Support**:
+  - Added `setup_nala.sh` installer for the modern APT frontend
+  - Supports Ubuntu (20.04+) and Debian (11+) with automatic version detection
+  - Falls back to PPA/backports on older versions
+  - Auto-configures fastest mirrors
 - **Interactive TUI Menu**:
   - Created `menu.sh` with support for multiple TUI backends (Gum, Dialog, Whiptail, Bash)
   - Automatic installer discovery and organization
   - Beautiful console interface with Gum (when installed)
   - Graceful fallback to simpler backends when advanced tools unavailable
+  - Integrated dependency checking on startup
   - Comprehensive TUI_GUIDE.md documentation
 - **Gum Installer**: Added `setup_gum.sh` for installing the modern TUI tool
   - Supports both APT repository and direct download methods

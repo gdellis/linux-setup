@@ -1,2 +1,101 @@
+# Backup directories
 backups/
+
+# Download directories (created by installers)
 downloads/
+
+# Log files and directories
+logs/
+*.log
+
+# Backup files (created by backup_file() function)
+*.backup.*
+
+# Temporary files
+*.tmp
+*.temp
+.tmp/
+.temp/
+
+# OS specific files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+*~
+
+# Linux backup files
+*~
+*.swp
+*.swo
+*.swn
+
+# Shell history in project
+.bash_history
+.zsh_history
+
+# Environment files (may contain secrets)
+.env
+.env.local
+*.env.local
+
+# IDE and editor files (uncomment if you want to ignore these)
+# .vscode/
+# .idea/
+# *.sublime-project
+# *.sublime-workspace
+
+# Python cache (if any Python scripts added later)
+__pycache__/
+*.py[cod]
+*$py.class
+.Python
+
+# Node modules (if any JS tools added later)
+node_modules/
+
+# Test artifacts
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Build artifacts
+dist/
+build/
+*.deb
+*.rpm
+*.tar.gz
+*.zip
+
+# Local configuration overrides
+local.conf
+*.local.conf
+
+# Claude Code artifacts
+.claude/
+CLAUDE.md
+
+# Runtime data
+*.pid
+*.seed
+*.pid.lock
+
+# Compiled binaries
+*.o
+*.so
+*.dylib
+*.dll
+*.exe
+
+# Package manager locks that might be generated
+package-lock.json
+yarn.lock
+Pipfile.lock
+
+# Any local test scripts
+# test_*.sh
+debug_*.sh
+local_*.sh

@@ -25,7 +25,7 @@ The setup includes:
 
 ## Quick Start
 
-**New!** Interactive console menu for easy installation:
+**New!** Interactive console menu with automatic dependency management:
 
 ```bash
 git clone https://github.com/gdellis/linux-setup
@@ -33,9 +33,20 @@ cd linux-setup
 ./menu.sh
 ```
 
-The menu provides a beautiful TUI (Terminal User Interface) for running all installer scripts. See [TUI_GUIDE.md](TUI_GUIDE.md) for details.
+The menu will:
+- ✓ Automatically check system dependencies
+- ✓ Offer to install missing tools (curl, wget, nala)
+- ✓ Provide a beautiful TUI for running installers
+- ✓ Handle everything with minimal user input
 
-Alternatively, run individual scripts directly:
+**Check dependencies manually:**
+
+```bash
+./check_dependencies.sh           # Check only
+./check_dependencies.sh --install # Check and auto-install
+```
+
+**Run individual installers directly:**
 
 ```bash
 ./installers/setup_ollama.sh
@@ -43,11 +54,21 @@ Alternatively, run individual scripts directly:
 # etc.
 ```
 
+See [TUI_GUIDE.md](TUI_GUIDE.md) and [DEPENDENCIES.md](DEPENDENCIES.md) for details.
+
 ## Features
+
+- **Automatic Dependency Management** ⭐ NEW!
+  - Automatic checking of system dependencies on startup
+  - Smart installation of missing tools (curl, wget, nala, etc.)
+  - Nala package manager for better APT experience
+  - Comprehensive dependency library for scripts
+  - See [DEPENDENCIES.md](DEPENDENCIES.md) for full documentation
 
 - **Interactive TUI Menu** ⭐ NEW!
   - Beautiful console interface with multiple backend support (Gum, Dialog, Bash)
   - Automatic script discovery and organization
+  - Integrated dependency checking
   - Easy navigation and installer execution
   - See [TUI_GUIDE.md](TUI_GUIDE.md) for full documentation
 
