@@ -13,6 +13,7 @@ The setup includes:
 ## Table of Contents
 
 - [Features](#features)
+- [Quick Start](#quick-start)
 - [Installation](#installation)
   - [Prerequisites](#prerequisites)
   - [Setup Steps](#setup-steps)
@@ -22,7 +23,33 @@ The setup includes:
 - [Contributing](#contributing)
 - [License](#license)
 
+## Quick Start
+
+**New!** Interactive console menu for easy installation:
+
+```bash
+git clone https://github.com/gdellis/linux-setup
+cd linux-setup
+./menu.sh
+```
+
+The menu provides a beautiful TUI (Terminal User Interface) for running all installer scripts. See [TUI_GUIDE.md](TUI_GUIDE.md) for details.
+
+Alternatively, run individual scripts directly:
+
+```bash
+./installers/setup_ollama.sh
+./installers/setup_fabric.sh
+# etc.
+```
+
 ## Features
+
+- **Interactive TUI Menu** ⭐ NEW!
+  - Beautiful console interface with multiple backend support (Gum, Dialog, Bash)
+  - Automatic script discovery and organization
+  - Easy navigation and installer execution
+  - See [TUI_GUIDE.md](TUI_GUIDE.md) for full documentation
 
 - **Enhanced Bash Environment**:
   - Custom `.bashrc` configuration with Starship prompt

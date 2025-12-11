@@ -8,6 +8,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Interactive TUI Menu**:
+  - Created `menu.sh` with support for multiple TUI backends (Gum, Dialog, Whiptail, Bash)
+  - Automatic installer discovery and organization
+  - Beautiful console interface with Gum (when installed)
+  - Graceful fallback to simpler backends when advanced tools unavailable
+  - Comprehensive TUI_GUIDE.md documentation
+- **Gum Installer**: Added `setup_gum.sh` for installing the modern TUI tool
+  - Supports both APT repository and direct download methods
+  - Auto-detects system architecture
 - **Backup functionality**: Added `backup_file()` function to `lib/logging.sh` that creates timestamped backups before overwriting files
 - **Non-interactive mode**: Added `-y/--yes/--non-interactive` flag to `setup_fabric.sh` for automated deployments
 - **Checksum verification**:
