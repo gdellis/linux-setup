@@ -3,68 +3,50 @@
 
 set -euo pipefail
 
+# Get script directory and source logging library
+SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
+# shellcheck source=../lib/logging.sh
+source "$SCRIPT_DIR/../lib/logging.sh"
 
-VERSION="2.3.1"
-BASE_URL="https://github.com/OrcaSlicer/OrcaSlicer/releases/download/${VERSION}"
-
+readonly VERSION="2.3.1"
+readonly BASE_URL="https://github.com/OrcaSlicer/OrcaSlicer/releases/download/${VERSION}"
 
 # ------------------------------------------------------------
 # Setup Logging
 # ------------------------------------------------------------
 # region
 
-APP_NAME=orcaslicer
-DL_DIR="${HOME}/Downloads/$APP_NAME"
-LOG_DIR="${HOME}/logs/$APP_NAME"
-LOG_FILE="${LOG_DIR}/install_$(date +%Y%m%d_%H%M%S).log"
-
-# Color codes
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-BLUE='\033[0;34m'
-NC='\033[0m' # No Color
+readonly APP_NAME=orcaslicer
+readonly DL_DIR="${HOME}/downloads/$APP_NAME"
+readonly LOG_DIR="${HOME}/logs/$APP_NAME"
+readonly LOG_FILE="${LOG_DIR}/install_$(date +%Y%m%d_%H%M%S).log"
 
 # Ensure directories exist
 mkdir -p "$DL_DIR"
 mkdir -p "$LOG_DIR"
-
-# Logging functions with color and file output
-log() 
-{
-    local colored_msg plain_msg
-    colored_msg="[$(date '+%Y-%m-%d %H:%M:%S')] $*"
-    
-    # Strip ANSI color codes for log file
-    plain_msg=$(echo -e "$colored_msg" | sed -E 's/\x1B\[([0-9]{1,2}(;[0-9]{1,2})?)?[mK]//g')
-    
-    # Output to terminal (with colors)
-    echo -e "$colored_msg"
-    
-    # Output to log file (without colors)
-    echo "$plain_msg" >> "$LOG_FILE"
-}
-
-log_info() { log "${GREEN}[INFO]${NC} $*";}
-log_error() { log "${RED}[ERROR]${NC} $*";}
-log_success() { log "${GREEN}[SUCCESS]${NC} $*";}
-log_warning() { log "${YELLOW}[WARNING]${NC} $*";}
 
 log_info "=== $APP_NAME Installer Started ==="
 log_info "Log file: $LOG_FILE"
 # endregion
 
 # Download file with error checking
+# TODO: Add checksum verification once OrcaSlicer provides official checksums
+# OrcaSlicer GitHub releases do not currently provide SHA256 checksums
+# For manual verification, compute the checksum after download:
+#   sha256sum <downloaded_file>
+# Then compare with checksum from OrcaSlicer's official communication channels
 dl_file() {
   local url="$1"
   local dest_dir="${2:-$DL_DIR}"
   local filename
   filename="$(basename "$url")"
   local output_path="${dest_dir}/${filename}"
-  
+
   log_info "Downloading: $filename"
-  
+
   if wget -q --show-progress "$url" -O "$output_path" 2>&1 | tee -a "$LOG_FILE" >/dev/null; then
+    log_warning "Note: Checksum verification not available for OrcaSlicer downloads"
+    log_info "For manual verification, run: sha256sum $output_path"
     log_success "Successfully downloaded: $filename"
     echo "$output_path"
   else

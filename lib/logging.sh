@@ -6,61 +6,69 @@ DEBUG_ENABLED=${DEBUG_ENABLED:-false}
 COLOR_ENABLED=${COLOR_ENABLED:-true}
 
 # Color codes
-if [[ "$COLOR_ENABLED" == "true" ]]; then
-    RED='\033[0;31m'
-    GREEN='\033[0;32m'
-    YELLOW='\033[1;33m'
-    BLUE='\033[0;34m'
-    PURPLE='\033[0;35m'
-    CYAN='\033[0;36m'
-    WHITE='\033[1;37m'
-    NC='\033[0m' # No Color
-else
-    RED=''
-    GREEN=''
-    YELLOW=''
-    BLUE=''
-    PURPLE=''
-    CYAN=''
-    WHITE=''
-    NC=''
-fi
+readonly RED='\033[0;31m'
+readonly GREEN='\033[0;32m'
+readonly YELLOW='\033[1;33m'
+readonly BLUE='\033[0;34m'
+readonly PURPLE='\033[0;35m'
+readonly CYAN='\033[0;36m'
+readonly WHITE='\033[1;37m'
+readonly NC='\033[0m' # No Color
 
-# Basic logging function with timestamp
+# Base logging function with dual output (terminal + file)
+# Outputs colored text to terminal and ANSI-stripped text to log file (if $LOG_FILE is set)
 log()
 {
-    local _msg="$1"
-    echo -e "$(date '+%Y-%m-%d %H:%M:%S') [INFO] $_msg"
+    local colored_msg plain_msg
+    colored_msg="[$(date '+%Y-%m-%d %H:%M:%S')] $*"
+
+    # Strip ANSI color codes for log file
+    plain_msg=$(echo -e "$colored_msg" | sed -E 's/\x1B\[([0-9]{1,2}(;[0-9]{1,2})?)?[mK]//g')
+
+    # Output to terminal (with colors)
+    echo -e "$colored_msg"
+
+    # Output to log file (without colors) if LOG_FILE is set
+    if [[ -n "${LOG_FILE:-}" ]]; then
+        echo "$plain_msg" >> "$LOG_FILE"
+    fi
 }
 
 # Enhanced logging functions with levels and colors
 log_info()
 {
-    local _msg="$1"
     if [[ "$LOG_LEVEL" == "INFO" || "$LOG_LEVEL" == "DEBUG" ]]; then
-        echo -e "$(date '+%Y-%m-%d %H:%M:%S') ${GREEN}[INFO]${NC} $_msg"
+        log "${GREEN}[INFO]${NC} $*"
     fi
+}
+
+log_success()
+{
+    log "${GREEN}[SUCCESS]${NC} $*"
 }
 
 log_warn()
 {
-    local _msg="$1"
     if [[ "$LOG_LEVEL" == "INFO" || "$LOG_LEVEL" == "DEBUG" || "$LOG_LEVEL" == "WARN" ]]; then
-        echo -e "$(date '+%Y-%m-%d %H:%M:%S') ${YELLOW}[WARN]${NC} $_msg" >&2
+        log "${YELLOW}[WARN]${NC} $*"
     fi
+}
+
+# Alias for compatibility with installer scripts
+log_warning()
+{
+    log_warn "$*"
 }
 
 log_error()
 {
-    local _msg="$1"
-    echo -e "$(date '+%Y-%m-%d %H:%M:%S') ${RED}[ERROR]${NC} $_msg" >&2
+    log "${RED}[ERROR]${NC} $*"
 }
 
 log_debug()
 {
-    local _msg="$1"
     if [[ "$DEBUG_ENABLED" == "true" && ("$LOG_LEVEL" == "DEBUG" || -z "$LOG_LEVEL") ]]; then
-        echo -e "$(date '+%Y-%m-%d %H:%M:%S') ${CYAN}[DEBUG]${NC} $_msg"
+        log "${CYAN}[DEBUG]${NC} $*"
     fi
 }
 
