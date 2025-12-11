@@ -1,20 +1,20 @@
+#!/usr/bin/env bash
 
 set -euo pipefail
+SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
+
 # ------------------------------------------------------------
 # Setup Logging
 # ------------------------------------------------------------
 # region
-SCRIPT_NAME=$(basename $0)
-SCRIPT_NAME=${SCRIPT_NAME%.*} 
-
-readonly APP_NAME=${SCRIPT_NAME/setup_/}
+readonly APP_NAME=fabric
 readonly DL_DIR="${HOME}/downloads/$APP_NAME"
 readonly LOG_DIR="${HOME}/logs/$APP_NAME"
 readonly LOG_FILE="${LOG_DIR}/$(date +%Y%m%d_%H%M%S)_${APP_NAME}.log"
 
 # Ensure directories exist
-test -d "$DL_DIR"  || mkdir -p "$DL_DIR"
-test -d "$LOG_DIR" || mkdir -p "$LOG_DIR"
+mkdir -p "$DL_DIR"
+mkdir -p "$LOG_DIR"
 
 # Color codes
 readonly RED='\033[0;31m'
@@ -38,9 +38,7 @@ log_warning() { log "${YELLOW}[WARNING]${NC} $*";}
 
 log_info "=== $APP_NAME Installer Started ==="
 log_info "Log file: $LOG_FILE"
-
-# ------------------------------------------------------------------------------
-#endregion
+# endregion
 
 cleanup()
 {
@@ -66,7 +64,7 @@ cleanup()
     # Restore terminal settings if modified
     # stty sane 2>/dev/null || true
 
-   # Return to original directory if pushd was used
+    # Return to original directory if pushd was used
     while popd &>/dev/null; do :; done
     
     echo "Cleanup complete"
@@ -76,3 +74,16 @@ cleanup()
 
 # Set trap for various exit signals
 trap cleanup EXIT INT TERM ERR
+
+pushd "$SCRIPT_DIR" || ( log_error "Could not change directories to '$SCRIPT_DIR'"; exit 1 )
+NEW_SCRIPT="$1"
+
+log_info "Creating new installer script '$NEW_SCRIPT'"
+
+if cp template.tpl "$NEW_SCRIPT";then
+    log_success "The new script '$NEW_SCRIPT' is now ready"
+    exit 1
+else
+    log_error "The new script '$NEW_SCRIPT' could not be created"
+    exit 0
+fi

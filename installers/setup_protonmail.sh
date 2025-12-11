@@ -1,3 +1,4 @@
+#!/usr/bin/env bash
 
 set -euo pipefail
 # ------------------------------------------------------------
@@ -42,37 +43,4 @@ log_info "Log file: $LOG_FILE"
 # ------------------------------------------------------------------------------
 #endregion
 
-cleanup()
-{
-    local exit_code=$?
-    
-    log_info "Cleaning up..."
-    
-    # Remove temporary files/directories
-    # if [[ -n "${TEMP_DIR:-}" && -d "$TEMP_DIR" ]]; then
-    #     rm -rf "$TEMP_DIR"
-    # fi
-    
-    # # Kill background processes spawned by this script
-    # if [[ -n "${BG_PIDS:-}" ]]; then
-    #     for pid in $BG_PIDS; do
-    #         kill "$pid" 2>/dev/null || true
-    #     done
-    # fi
-    
-    # Close file descriptors if opened
-    # exec 3>&- 4>&- 2>/dev/null || true
-    
-    # Restore terminal settings if modified
-    # stty sane 2>/dev/null || true
 
-   # Return to original directory if pushd was used
-    while popd &>/dev/null; do :; done
-    
-    echo "Cleanup complete"
-    exit $exit_code
-
-}
-
-# Set trap for various exit signals
-trap cleanup EXIT INT TERM ERR

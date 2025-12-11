@@ -5,17 +5,17 @@ set -euo pipefail
 # Setup Logging
 # ------------------------------------------------------------
 # region
-APP_NAME=fabric
-DL_DIR="${HOME}/downloads/$APP_NAME"
-LOG_DIR="${HOME}/logs/$APP_NAME"
-LOG_FILE="${LOG_DIR}/install_$(date +%Y%m%d_%H%M%S).log"
+readonly APP_NAME=fabric
+readonly DL_DIR="${HOME}/downloads/$APP_NAME"
+readonly LOG_DIR="${HOME}/logs/$APP_NAME"
+readonly LOG_FILE="${LOG_DIR}/$(date +%Y%m%d_%H%M%S)_${APP_NAME}.log"
 
 # Color codes
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-BLUE='\033[0;34m'
-NC='\033[0m' # No Color
+readonly RED='\033[0;31m'
+readonly GREEN='\033[0;32m'
+readonly YELLOW='\033[1;33m'
+readonly BLUE='\033[0;34m'
+readonly NC='\033[0m' # No Color
 
 # Ensure directories exist
 mkdir -p "$DL_DIR"
