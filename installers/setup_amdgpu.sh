@@ -65,12 +65,33 @@ cleanup()
 trap cleanup EXIT INT TERM ERR
 
 # ------------------------------------------------------------
-# Configuration
+# OS Detection
 # ------------------------------------------------------------
 
-readonly AMDGPU_DEB_URL="https://repo.radeon.com/amdgpu-install/7.1.1/ubuntu/jammy/amdgpu-install_7.1.1.70101-1_all.deb"
-readonly AMDGPU_DEB_FILE="$DL_DIR/amdgpu-install_7.1.1.70101-1_all.deb"
-readonly AMDGPU_DEB_SHA256=""  # TODO: Add checksum when available
+# Get OS ID, treating Zorin as Ubuntu
+get_os_id() {
+    if [[ -r /etc/os-release ]]; then
+        . /etc/os-release
+        case "$ID" in
+            zorin)
+                echo "ubuntu"
+                return 0
+                ;;
+            ubuntu|debian)
+                echo "$ID"
+                return 0
+                ;;
+            *)
+                return 1
+                ;;
+        esac
+    fi
+    return 1
+}
+
+# ------------------------------------------------------------
+# Configuration
+# ------------------------------------------------------------
 
 # AMD GPU firmware files
 readonly AMDGPU_FW_DIR="/lib/firmware/amdgpu"
@@ -99,6 +120,18 @@ install_amdgpu_drivers() {
     
     # Ensure dependencies
     ensure_dependencies --auto-install curl wget apt-transport-https
+    
+    # Get OS ID
+    local os_id
+    os_id=$(get_os_id) || {
+        log_error "Unsupported OS. This script is designed for Ubuntu/Debian systems."
+        return 1
+    }
+    
+    # AMD GPU installer URL - dynamically set based on OS
+    readonly AMDGPU_DEB_URL="https://repo.radeon.com/amdgpu-install/7.1.1/$os_id/jammy/amdgpu-install_7.1.1.70101-1_all.deb"
+    readonly AMDGPU_DEB_FILE="$DL_DIR/amdgpu-install_7.1.1.70101-1_all.deb"
+    readonly AMDGPU_DEB_SHA256=""  # TODO: Add checksum when available
     
     # Update package lists
     log_info "Updating package lists..."
@@ -217,6 +250,23 @@ main() {
         log_error "Cannot determine OS. This script is designed for Ubuntu/Debian systems."
         exit 1
     fi
+    
+    # Source OS information
+    . /etc/os-release
+    log_info "Detected OS: $ID $VERSION_ID"
+    
+    # Get OS ID (treat Zorin as Ubuntu)
+    local os_id
+    os_id=$(get_os_id) || {
+        log_error "Unsupported OS: $ID. This script is designed for Ubuntu/Debian systems."
+        exit 1
+    }
+    
+    if [[ "$ID" == "zorin" ]]; then
+        log_info "Detected Zorin OS, treating as Ubuntu"
+    fi
+    
+    log_info "Using OS ID: $os_id for AMD GPU installation"
     
     # Install AMD GPU drivers
     if ! install_amdgpu_drivers; then
