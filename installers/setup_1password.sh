@@ -2,6 +2,7 @@
 #
 # setup_1password.sh - 1Password Installation Script
 # Description: Installs 1Password password manager on Debian/Ubuntu-based systems
+# Category: Utilities
 # Usage: ./setup_1password.sh
 #
 

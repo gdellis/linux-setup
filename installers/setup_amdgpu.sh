@@ -2,6 +2,7 @@
 #
 # setup_amdgpu.sh - AMD GPU Driver Installation Script
 # Description: Installs AMD GPU drivers and ROCm development tools
+# Category: System
 # Usage: ./setup_amdgpu.sh
 #
 
@@ -42,9 +43,9 @@ cleanup()
     log_info "Cleaning up..."
 
     # Remove temporary files/directories
-    # if [[ -n "${TEMP_DIR:-}" && -d "$TEMP_DIR" ]]; then
-    #     rm -rf "$TEMP_DIR"
-    # fi
+    if [[ -n "${TEMP_DIR:-}" && -d "$TEMP_DIR" ]]; then
+        rm -rf "$TEMP_DIR"
+    fi
 
     # Kill background processes spawned by this script
     # if [[ -n "${BG_PIDS:-}" ]]; then
@@ -125,20 +126,20 @@ patch_amdgpu_install_script() {
     fi
     
     # Check if Zorin is already supported
-    if sudo grep -q "zorin|ubuntu|linuxmint|debian" "$installer_path"; then
+    if sudo grep -q "zorin|ubuntulinuxmint|debian" "$installer_path"; then
         log_info "Zorin OS already supported in amdgpu-install script"
         return 0
     fi
     
     # Check if the pattern we want to replace exists
-    if sudo grep -q "ubuntu|linuxmint|debian)" "$installer_path"; then
+    if sudo grep -q "ubuntulinuxmint|debian)" "$installer_path"; then
         log_info "Patching amdgpu-install script to support Zorin OS..."
         # Create backup first
         local timestamp
         timestamp=$(date +%Y%m%d_%H%M%S)
         if sudo cp "$installer_path" "${installer_path}.backup.${timestamp}"; then
             # Replace the pattern to include Zorin
-            if sudo sed -i 's/ubuntu|linuxmint|debian)/zorin|ubuntu|linuxmint|debian)/g' "$installer_path"; then
+            if sudo sed -i 's/ubuntulinuxmint|debian)/zorin|ubuntulinuxmint|debian)/g' "$installer_path"; then
                 log_success "Successfully patched amdgpu-install script to support Zorin OS"
                 return 0
             else

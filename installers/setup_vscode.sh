@@ -2,6 +2,7 @@
 #
 # setup_vscode.sh - Visual Studio Code Installation Script
 # Description: Downloads and installs Visual Studio Code editor
+# Category: Development
 # Usage: ./setup_vscode.sh
 #
 
