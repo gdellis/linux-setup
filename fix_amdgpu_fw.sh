@@ -10,6 +10,8 @@ FILES=(
     "gc_12_0_1_toc.bin"
     "gc_12_0_0_toc.bin"
     "gc_11_0_3_mes.bin"
+    "sienna_cichlid_mes1.bin"
+    "navi10_mes.bin"
 )
 
 # Create target directory if it doesn't exist

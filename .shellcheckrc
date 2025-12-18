@@ -1,4 +1,15 @@
+# ShellCheck configuration file
+# Enable following sourced files
 source-path=SCRIPTDIR
 source-path=SCRIPTDIR/lib
 
+# Disable specific warnings
 disable=SC2155
+
+# Follow external sources
+external-sources=true
+
+# Check for common bash issues
+shell=bash
+
+# Follow all paths
