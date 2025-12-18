@@ -1,6 +1,6 @@
-# Repository Overview
+# Linux Setup Architecture
 
-## Project Description
+## Project Overview
 - **What this project does**: A comprehensive, professional Linux setup automation system with interactive TUI menu, automatic dependency management, and modular installer scripts for development tools and applications
 - **Main purpose and goals**:
   - Provide zero-friction setup experience with automatic dependency resolution
@@ -10,7 +10,7 @@
   - Enable both interactive and automated (CI/CD) deployment scenarios
 - **Key technologies used**:
   - Bash scripting with strict mode (`set -euo pipefail`)
-  - Gum TUI framework for beautiful console interfaces
+  - Python and Gum TUI framework for beautiful console interfaces
   - Nala package manager for improved APT experience
   - Bats testing framework for automated tests
   - GitHub Actions for CI/CD
@@ -20,12 +20,16 @@
 - **High-level architecture**: Modular, library-based architecture with automatic dependency resolution, interactive menu system, and pluggable installer scripts
 - **Main components and their relationships**:
   - **Interactive Menu** (`menu.sh`): Multi-backend TUI that auto-discovers installers and handles dependency checking
+  - **Python TUI** (`py_menu.py`): Enhanced TUI with categories and multi-select capabilities
   - **Shared Libraries**:
     - `lib/logging.sh`: Centralized logging with dual output (terminal + file), color support, and backup functionality
     - `lib/dependencies.sh`: Dependency management with auto-installation capabilities
   - **Installer Scripts** (`installers/`):
     - Core tools: `setup_nala.sh` (package manager), `setup_gum.sh` (TUI tool)
     - AI/ML: `setup_ollama.sh`, `setup_fabric.sh`
+    - Development: `setup_vscode.sh`, `setup_neovim.sh`
+    - Security: `setup_1password.sh`
+    - System: `setup_amdgpu.sh`
     - Desktop apps: `setup_orcaslicer.sh`, `setup_protonmail.sh`, `setup_protonvpn.sh`, `setup_syncthing.sh`
   - **System Tools**:
     - `check_dependencies.sh`: Standalone dependency checker/installer
@@ -42,40 +46,64 @@
   5. Package downloads verified with SHA256 checksums where available
 
 ## Directory Structure
-- **Important directories and their purposes**:
-  - `installers/`: All setup scripts for various applications and tools
-  - `lib/`: Shared libraries (logging, dependency management)
-  - `bash/`: Bash configuration files (`.bashrc`, `.bash_aliases`)
-  - `tests/`: Automated test suite using Bats framework
-  - `.github/workflows/`: CI/CD configuration for automated testing
-  - `downloads/`: Created at runtime by installers for package downloads (gitignored)
-  - `logs/`: Created at runtime for installer logs (gitignored)
-  - `backups/`: Stores timestamped backups of modified files (gitignored)
-- **Key files and configuration**:
-  - **Entry Points**:
-    - `menu.sh`: Interactive TUI menu (primary entry point for users)
-    - `check_dependencies.sh`: System dependency checker
-    - `setup_bash.sh`: Bash environment configuration
-  - **Shared Libraries**:
-    - `lib/logging.sh`: Logging functions, backup functionality, error handling
-    - `lib/dependencies.sh`: 15+ dependency management functions
-  - **Installer Template**:
-    - `installers/template.tpl`: Template for creating new installers
-    - `installers/new_installer.sh`: Generator script for new installers (Linux only)
-  - **Documentation**:
-    - `README.md`: Project overview and quick start
-    - `TUI_GUIDE.md`: Complete TUI menu documentation
-    - `DEPENDENCIES.md`: Dependency management guide
-    - `CHANGELOG.md`: Version history and changes
-    - `AGENTS.md`: This file - architecture and development guide
-  - **Configuration**:
-    - `.shellcheckrc`: ShellCheck linter configuration
-    - `.gitignore`: Comprehensive exclusions for logs, backups, temp files
-- **Entry points and main modules**:
-  - **Primary**: `menu.sh` - Interactive menu with automatic dependency management
-  - **Alternative**: Direct execution of installers (e.g., `./installers/setup_ollama.sh`)
-  - **Utility**: `check_dependencies.sh --install` - Automated dependency installation
-  - **Testing**: `bats tests/` - Run automated test suite
+```
+linux-setup/
+├── docs/              # Documentation files
+│   ├── ARCHITECTURE.md    # System architecture and development guide
+│   ├── CHANGELOG.md       # Version history and changes
+│   ├── DEPENDENCIES.md    # Dependency management guide
+│   ├── TUI_GUIDE.md       # Complete TUI menu documentation
+├── installers/        # Modular installer scripts
+├── lib/               # Shared libraries (logging, dependencies)
+├── tests/             # Automated tests
+├── utilities/         # Utility scripts and configurations
+├── bash/              # Bash configuration files
+├── menu.sh            # Main TUI menu system
+├── py_menu.py         # Enhanced Python TUI with categories
+├── setup_bash.sh      # Bash environment setup
+└── check_dependencies.sh # Dependency checking script
+```
+
+## Key Files and Configuration
+- **Entry Points**:
+  - `menu.sh`: Interactive TUI menu (primary entry point for users)
+  - `py_menu.py`: Enhanced Python TUI with categories and multi-select
+  - `check_dependencies.sh`: System dependency checker
+  - `setup_bash.sh`: Bash environment configuration
+- **Shared Libraries**:
+  - `lib/logging.sh`: Logging functions, backup functionality, error handling
+  - `lib/dependencies.sh`: 15+ dependency management functions
+- **Installer Template**:
+  - `installers/template.tpl`: Template for creating new installers
+  - `installers/new_installer.sh`: Generator script for new installers (Linux only)
+- **Documentation**:
+  - `README.md`: Project overview and quick start
+  - `docs/TUI_GUIDE.md`: Complete TUI menu documentation
+  - `docs/DEPENDENCIES.md`: Dependency management guide
+  - `docs/CHANGELOG.md`: Version history and changes
+  - `docs/ARCHITECTURE.md`: System architecture and development guide
+- **Configuration**:
+  - `.shellcheckrc`: ShellCheck linter configuration
+  - `.gitignore`: Comprehensive exclusions for logs, backups, temp files
+
+## Recent Major Improvements
+
+### Multi-Select and Batch Installation
+- Added category-based organization in Python TUI
+- Implemented multi-select mode with checkbox interface
+- Added batch installation of multiple selected tools
+- Enhanced visual indicators for selected items
+
+### Enhanced Documentation Structure
+- Organized documentation into dedicated `docs/` directory
+- Improved README with updated links to documentation
+- Better directory structure for easier navigation
+
+### Code Quality Improvements
+- Added category metadata to installer scripts
+- Enhanced error handling in Python TUI
+- Improved visual design and user experience
+- Better progress tracking during batch installations
 
 ## Development Workflow
 - **How to build/run the project**:
@@ -83,11 +111,14 @@
   # Interactive mode (recommended for first-time users)
   ./menu.sh
 
+  # Enhanced Python TUI with categories
+  ./py_menu.py
+
   # Check/install dependencies manually
   ./check_dependencies.sh --install
 
   # Run specific installer directly
-  ./installers/setup_ollama.sh
+  ./installers/setup_vscode.sh
 
   # Non-interactive mode for CI/CD
   ./installers/setup_fabric.sh --yes
@@ -107,6 +138,7 @@
 - **Development environment setup**:
   - **Minimum requirements**:
     - Bash 4.0+
+    - Python 3.6+ (for py_menu.py)
     - sudo access
     - curl or wget
     - Ubuntu 20.04+ or Debian 11+
@@ -132,7 +164,7 @@
     shellcheck installers/*.sh lib/*.sh menu.sh check_dependencies.sh
 
     # Check specific script
-    shellcheck installers/setup_ollama.sh
+    shellcheck installers/setup_vscode.sh
     ```
   - **Bash strict mode**: All scripts use `set -euo pipefail`
   - **Code style**:
@@ -219,40 +251,8 @@ backup_file "$config_file"  # Creates .backup.YYYYMMDD_HHMMSS
 - ✅ File headers with description and usage
 - ✅ Inline comments for complex logic
 - ✅ User-facing guides (README, TUI_GUIDE, DEPENDENCIES)
-- ✅ Developer documentation (AGENTS.md, CHANGELOG)
+- ✅ Developer documentation (ARCHITECTURE.md, CHANGELOG)
 - ✅ API documentation in library files
-
-## Recent Major Improvements (2024)
-
-### Automatic Dependency Management
-- Created `lib/dependencies.sh` with 15+ reusable functions
-- Integrated automatic checking into `menu.sh`
-- Added `check_dependencies.sh` standalone tool
-- Auto-installation of curl, wget, nala with user consent
-
-### Interactive TUI Menu
-- Multi-backend support (Gum, Dialog, Whiptail, Bash)
-- Auto-discovers all installer scripts
-- Integrated dependency checking
-- Beautiful styled interface with Gum
-
-### Code Quality & Testing
-- Refactored all installers to use shared libraries (~438 lines removed)
-- Added Bats test framework with comprehensive tests
-- Implemented GitHub Actions CI/CD with ShellCheck
-- Enforced readonly for constants across all scripts
-
-### User Experience
-- Non-interactive mode for automation (`--yes` flag)
-- Backup functionality before config changes
-- Checksum verification for secure downloads
-- Comprehensive error handling and logging
-
-### Documentation
-- Created TUI_GUIDE.md (70+ lines)
-- Created DEPENDENCIES.md (650+ lines)
-- Updated CHANGELOG.md with all changes
-- Added inline documentation to all functions
 
 ## Extension Points
 
@@ -265,13 +265,14 @@ backup_file "$config_file"  # Creates .backup.YYYYMMDD_HHMMSS
 2. Edit the generated script:
    - Set download URLs and checksums
    - Implement installation logic
+   - Add category metadata
    - Test thoroughly
 3. Script auto-appears in menu
 
 ### Adding Dependencies
 1. Update `lib/dependencies.sh` if needed
 2. Add to appropriate category in `check_dependencies.sh`
-3. Document in `DEPENDENCIES.md`
+3. Document in `docs/DEPENDENCIES.md`
 
 ### Adding TUI Backend
 1. Add detection in `detect_tui_backend()`
@@ -375,7 +376,7 @@ backup_file "$config_file"  # Creates .backup.YYYYMMDD_HHMMSS
 ## Contact & Support
 
 ### Getting Help
-- Read documentation: README.md, TUI_GUIDE.md, DEPENDENCIES.md
+- Read documentation: README.md, docs/TUI_GUIDE.md, docs/DEPENDENCIES.md
 - Check logs: `~/logs/<app>/`
 - Run dependency check: `./check_dependencies.sh`
 - Open GitHub issue with logs and system info

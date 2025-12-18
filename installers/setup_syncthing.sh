@@ -2,11 +2,48 @@
 #
 # setup_syncthing.sh - Syncthing File Synchronization Installation Script
 # Description: Configures APT repository and installs Syncthing with stable or candidate releases
-# Usage: ./setup_syncthing.sh [stable|candidate]
+# Category: Utilities
+# Usage: ./setup_syncthing.sh [OPTIONS] [stable|candidate]
 #        Default: stable
+#        -y, --yes, --non-interactive    Skip confirmation prompts
+#        -h, --help                      Show help message
 #
 
 set -euo pipefail
+
+# Parse command line arguments
+NON_INTERACTIVE=false
+# Capture channel argument if provided
+CHANNEL=""
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        -y|--yes|--non-interactive)
+            NON_INTERACTIVE=true
+            shift
+            ;;
+        -h|--help)
+            echo "Usage: $0 [OPTIONS] [stable|candidate]"
+            echo ""
+            echo "Options:"
+            echo "  -y, --yes, --non-interactive    Skip confirmation prompts"
+            echo "  -h, --help                      Show this help message"
+            echo ""
+            echo "Channels:"
+            echo "  stable     Install stable releases (default)"
+            echo "  candidate  Install candidate releases"
+            exit 0
+            ;;
+        stable|candidate)
+            CHANNEL="$1"
+            shift
+            ;;
+        *)
+            echo "Unknown option: $1"
+            echo "Use --help for usage information"
+            exit 1
+            ;;
+    esac
+done
 
 # Save and change directories
 readonly ORIG_PWD=$(pwd)
@@ -15,6 +52,8 @@ readonly ORIG_PWD=$(pwd)
 SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 # shellcheck source=../lib/logging.sh
 source "$SCRIPT_DIR/../lib/logging.sh"
+# shellcheck source=../lib/dependencies.sh
+source "$SCRIPT_DIR/../lib/dependencies.sh"
 
 # ------------------------------------------------------------
 # Setup Logging
@@ -32,6 +71,9 @@ mkdir -p "$LOG_DIR"
 
 log_info "=== $APP_NAME Installer Started ==="
 log_info "Log file: $LOG_FILE"
+if [[ "$NON_INTERACTIVE" == "true" ]]; then
+    log_info "Running in non-interactive mode"
+fi
 # endregion
 
 cleanup()
@@ -134,19 +176,21 @@ Pin-Priority: 990"
 install_syncthing() {
     log_info "Updating package lists..."
 
-    if ! sudo nala update; then
+    # Use the shared library function to update package lists
+    if ! update_package_lists; then
         log_error "Failed to update package lists"
         return 1
     fi
 
     log_info "Installing Syncthing..."
 
-    if sudo nala install -y syncthing; then
-        log_success "Syncthing installed successfully"
-    else
+    # Use the shared library function to install packages
+    if ! install_package syncthing; then
         log_error "Failed to install Syncthing"
         return 1
     fi
+    
+    log_success "Syncthing installed successfully"
 }
 
 # ------------------------------------------------------------
@@ -160,11 +204,13 @@ main() {
 
     # Determine channel (default to stable)
     local channel="stable"
-    if [[ $# -gt 0 ]]; then
-        if [[ "$1" == "candidate" ]]; then
+    if [[ -n "$CHANNEL" ]]; then
+        if [[ "$CHANNEL" == "candidate" ]]; then
             channel="candidate"
-        elif [[ "$1" != "stable" ]]; then
-            log_warning "Unknown channel '$1', using stable"
+        elif [[ "$CHANNEL" != "stable" ]]; then
+            log_warning "Unknown channel '$CHANNEL', using stable"
+        else
+            channel="$CHANNEL"
         fi
     fi
 

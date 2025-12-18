@@ -3,10 +3,36 @@
 # setup_vscode.sh - Visual Studio Code Installation Script
 # Description: Downloads and installs Visual Studio Code editor
 # Category: Development
-# Usage: ./setup_vscode.sh
+# Usage: ./setup_vscode.sh [OPTIONS]
+#        -y, --yes, --non-interactive    Skip confirmation prompts
+#        -h, --help                      Show help message
 #
 
 set -euo pipefail
+
+# Parse command line arguments
+NON_INTERACTIVE=false
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        -y|--yes|--non-interactive)
+            NON_INTERACTIVE=true
+            shift
+            ;;
+        -h|--help)
+            echo "Usage: $0 [OPTIONS]"
+            echo ""
+            echo "Options:"
+            echo "  -y, --yes, --non-interactive    Skip confirmation prompts"
+            echo "  -h, --help                      Show this help message"
+            exit 0
+            ;;
+        *)
+            echo "Unknown option: $1"
+            echo "Use --help for usage information"
+            exit 1
+            ;;
+    esac
+done
 
 # Save and change directories
 readonly ORIG_PWD=$(pwd)
@@ -34,6 +60,9 @@ mkdir -p "$LOG_DIR"
 
 log_info "=== $APP_NAME Installer Started ==="
 log_info "Log file: $LOG_FILE"
+if [[ "$NON_INTERACTIVE" == "true" ]]; then
+    log_info "Running in non-interactive mode"
+fi
 # endregion
 
 cleanup()
@@ -96,14 +125,14 @@ install_vscode() {
     
     # Install VS Code
     log_info "Installing Visual Studio Code..."
-    if ! sudo apt install -y "$VSCODE_FILE"; then
+    if ! install_package "$VSCODE_FILE"; then
         log_error "Failed to install Visual Studio Code"
         return 1
     fi
     
     # Install additional recommended extensions (optional)
     log_info "Installing recommended dependencies..."
-    if ! sudo apt install -y apt-transport-https; then
+    if ! install_package apt-transport-https; then
         log_warning "Failed to install apt-transport-https. Continuing..."
     fi
     

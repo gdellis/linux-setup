@@ -2,6 +2,7 @@
 #
 # setup_fabric.sh - Fabric AI Installation Script
 # Description: Installs and configures Fabric AI with pattern management and YouTube integration
+# Category: AI/ML
 # Usage: ./setup_fabric.sh [OPTIONS]
 #        -y, --yes, --non-interactive    Skip confirmation prompts
 #        -h, --help                      Show help message
@@ -37,6 +38,8 @@ done
 SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 # shellcheck source=../lib/logging.sh
 source "$SCRIPT_DIR/../lib/logging.sh"
+# shellcheck source=../lib/dependencies.sh
+source "$SCRIPT_DIR/../lib/dependencies.sh"
 
 # ------------------------------------------------------------
 # Setup Logging

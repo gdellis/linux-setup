@@ -2,15 +2,49 @@
 #
 # setup_orcaslicer.sh - OrcaSlicer 3D Printing Software Installation Script
 # Description: Installs OrcaSlicer via Flatpak, AppImage, or builds from source
-# Usage: ./setup_orcaslicer.sh {flatpak|appimage|docker|linux}
+# Category: Utilities
+# Usage: ./setup_orcaslicer.sh [OPTIONS] {flatpak|appimage|docker|linux}
+#        -y, --yes, --non-interactive    Skip confirmation prompts
+#        -h, --help                      Show help message
 #
 
 set -euo pipefail
+
+# Parse command line arguments
+NON_INTERACTIVE=false
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        -y|--yes|--non-interactive)
+            NON_INTERACTIVE=true
+            shift
+            ;;
+        -h|--help)
+            echo "Usage: $0 [OPTIONS] {flatpak|appimage|docker|linux}"
+            echo ""
+            echo "Options:"
+            echo "  -y, --yes, --non-interactive    Skip confirmation prompts"
+            echo "  -h, --help                      Show this help message"
+            echo ""
+            echo "Installation methods:"
+            echo "  flatpak - Install Flatpak version"
+            echo "  appimage - Download AppImage"
+            echo "  docker   - Build from source with Docker"
+            echo "  linux    - Build from source on Linux"
+            exit 0
+            ;;
+        *)
+            # If not an option, break to allow positional arguments
+            break
+            ;;
+    esac
+done
 
 # Get script directory and source logging library
 SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 # shellcheck source=../lib/logging.sh
 source "$SCRIPT_DIR/../lib/logging.sh"
+# shellcheck source=../lib/dependencies.sh
+source "$SCRIPT_DIR/../lib/dependencies.sh"
 
 readonly VERSION="2.3.1"
 readonly BASE_URL="https://github.com/OrcaSlicer/OrcaSlicer/releases/download/${VERSION}"
@@ -31,6 +65,9 @@ mkdir -p "$LOG_DIR"
 
 log_info "=== $APP_NAME Installer Started ==="
 log_info "Log file: $LOG_FILE"
+if [[ "$NON_INTERACTIVE" == "true" ]]; then
+    log_info "Running in non-interactive mode"
+fi
 # endregion
 
 # Download file with error checking

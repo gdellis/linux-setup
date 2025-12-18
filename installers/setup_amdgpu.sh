@@ -3,10 +3,36 @@
 # setup_amdgpu.sh - AMD GPU Driver Installation Script
 # Description: Installs AMD GPU drivers and ROCm development tools
 # Category: System
-# Usage: ./setup_amdgpu.sh
+# Usage: ./setup_amdgpu.sh [OPTIONS]
+#        -y, --yes, --non-interactive    Skip confirmation prompts
+#        -h, --help                      Show help message
 #
 
 set -euo pipefail
+
+# Parse command line arguments
+NON_INTERACTIVE=false
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        -y|--yes|--non-interactive)
+            NON_INTERACTIVE=true
+            shift
+            ;;
+        -h|--help)
+            echo "Usage: $0 [OPTIONS]"
+            echo ""
+            echo "Options:"
+            echo "  -y, --yes, --non-interactive    Skip confirmation prompts"
+            echo "  -h, --help                      Show this help message"
+            exit 0
+            ;;
+        *)
+            echo "Unknown option: $1"
+            echo "Use --help for usage information"
+            exit 1
+            ;;
+    esac
+done
 
 # Save and change directories
 readonly ORIG_PWD=$(pwd)
@@ -34,6 +60,9 @@ mkdir -p "$LOG_DIR"
 
 log_info "=== $APP_NAME Installer Started ==="
 log_info "Log file: $LOG_FILE"
+if [[ "$NON_INTERACTIVE" == "true" ]]; then
+    log_info "Running in non-interactive mode"
+fi
 # endregion
 
 cleanup()
@@ -201,7 +230,7 @@ install_amdgpu_drivers() {
     
     # Install the package
     log_info "Installing AMD GPU installer package..."
-    if ! sudo apt install -y "$AMDGPU_DEB_FILE"; then
+    if ! install_package "$AMDGPU_DEB_FILE"; then
         log_error "Failed to install AMD GPU installer package"
         return 1
     fi

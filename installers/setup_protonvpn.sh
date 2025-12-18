@@ -2,10 +2,37 @@
 #
 # setup_protonvpn.sh - Proton VPN Installation Script
 # Description: Downloads, verifies, and installs Proton VPN with GNOME desktop integration
-# Usage: ./setup_protonvpn.sh
+# Category: Security
+# Usage: ./setup_protonvpn.sh [OPTIONS]
+#        -y, --yes, --non-interactive    Skip confirmation prompts
+#        -h, --help                      Show help message
 #
 
 set -euo pipefail
+
+# Parse command line arguments
+NON_INTERACTIVE=false
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        -y|--yes|--non-interactive)
+            NON_INTERACTIVE=true
+            shift
+            ;;
+        -h|--help)
+            echo "Usage: $0 [OPTIONS]"
+            echo ""
+            echo "Options:"
+            echo "  -y, --yes, --non-interactive    Skip confirmation prompts"
+            echo "  -h, --help                      Show this help message"
+            exit 0
+            ;;
+        *)
+            echo "Unknown option: $1"
+            echo "Use --help for usage information"
+            exit 1
+            ;;
+    esac
+done
 
 # Save and change directories
 readonly ORIG_PWD=$(pwd)
@@ -33,6 +60,9 @@ mkdir -p "$LOG_DIR"
 
 log_info "=== $APP_NAME Installer Started ==="
 log_info "Log file: $LOG_FILE"
+if [[ "$NON_INTERACTIVE" == "true" ]]; then
+    log_info "Running in non-interactive mode"
+fi
 # endregion
 
 cleanup()
@@ -116,7 +146,7 @@ install_protonvpn() {
     
     # Install the package
     log_info "Installing Proton VPN release package..."
-    if ! sudo apt install -y "$PROTON_FILE"; then
+    if ! install_package "$PROTON_FILE"; then
         log_error "Failed to install Proton VPN release package"
         return 1
     fi
@@ -127,7 +157,7 @@ install_protonvpn() {
     
     # Install Proton VPN GNOME desktop integration
     log_info "Installing Proton VPN GNOME desktop integration..."
-    if ! sudo apt install -y proton-vpn-gnome-desktop; then
+    if ! install_package proton-vpn-gnome-desktop; then
         log_warning "Failed to install proton-vpn-gnome-desktop. Continuing with basic installation..."
     fi
     

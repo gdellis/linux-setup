@@ -2,10 +2,37 @@
 #
 # setup_protonmail.sh - Proton Mail Desktop Application Installation Script
 # Description: Downloads and installs the Proton Mail beta desktop client for Linux
-# Usage: ./setup_protonmail.sh
+# Category: Productivity
+# Usage: ./setup_protonmail.sh [OPTIONS]
+#        -y, --yes, --non-interactive    Skip confirmation prompts
+#        -h, --help                      Show help message
 #
 
 set -euo pipefail
+
+# Parse command line arguments
+NON_INTERACTIVE=false
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        -y|--yes|--non-interactive)
+            NON_INTERACTIVE=true
+            shift
+            ;;
+        -h|--help)
+            echo "Usage: $0 [OPTIONS]"
+            echo ""
+            echo "Options:"
+            echo "  -y, --yes, --non-interactive    Skip confirmation prompts"
+            echo "  -h, --help                      Show this help message"
+            exit 0
+            ;;
+        *)
+            echo "Unknown option: $1"
+            echo "Use --help for usage information"
+            exit 1
+            ;;
+    esac
+done
 
 # Save and change directories
 readonly ORIG_PWD=$(pwd)
@@ -14,6 +41,8 @@ readonly ORIG_PWD=$(pwd)
 SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 # shellcheck source=../lib/logging.sh
 source "$SCRIPT_DIR/../lib/logging.sh"
+# shellcheck source=../lib/dependencies.sh
+source "$SCRIPT_DIR/../lib/dependencies.sh"
 
 # ------------------------------------------------------------
 # Setup Logging
@@ -31,6 +60,9 @@ mkdir -p "$LOG_DIR"
 
 log_info "=== $APP_NAME Installer Started ==="
 log_info "Log file: $LOG_FILE"
+if [[ "$NON_INTERACTIVE" == "true" ]]; then
+    log_info "Running in non-interactive mode"
+fi
 # endregion
 
 cleanup()
@@ -71,25 +103,29 @@ trap cleanup EXIT INT TERM ERR
 
 # ------------------------------------------------------------
 
+# Ensure dependencies
+ensure_dependencies --auto-install curl
+
+# Download file with error checking
 log_info "📥 Downloading Proton Mail"
 
 readonly PROTON_URL="https://proton.me/download/mail/linux/1.11.0/ProtonMail-desktop-beta.deb"
 readonly PROTON_FILE="$DL_DIR/protonmail.deb"
 
-# TODO: Add checksum verification once Proton provides official checksums
-# ProtonMail does not currently provide SHA256 checksums on their download page
-# For manual verification, compute the checksum after download:
-#   sha256sum "$FILE"
-# Then compare with checksum from Proton's official communication channels
-
-if curl --output "$PROTON_FILE" "$PROTON_URL";then
+if curl --output "$PROTON_FILE" "$PROTON_URL"; then
     log_warning "Note: Checksum verification not available for ProtonMail downloads"
     log_info "Download complete. For manual verification, run: sha256sum $PROTON_FILE"
 
-    sudo nala update && sudo nala install -y "$PROTON_FILE"
-    log_success "protonmail installed successfully"
+    # Install using the dependency library function
+    if ! install_package "$PROTON_FILE"; then
+        log_error "Failed to install Proton Mail"
+        exit 1
+    fi
+    
+    log_success "Proton Mail installed successfully"
     exit 0
-else log_error "Error downloading package"
+else 
+    log_error "Error downloading package"
     exit 1
 fi
 

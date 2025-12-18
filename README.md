@@ -54,7 +54,7 @@ The menu will:
 # etc.
 ```
 
-See [TUI_GUIDE.md](TUI_GUIDE.md) and [DEPENDENCIES.md](DEPENDENCIES.md) for details.
+See [docs/TUI_GUIDE.md](docs/TUI_GUIDE.md) and [docs/DEPENDENCIES.md](docs/DEPENDENCIES.md) for details.
 
 ## Features
 
@@ -63,14 +63,14 @@ See [TUI_GUIDE.md](TUI_GUIDE.md) and [DEPENDENCIES.md](DEPENDENCIES.md) for deta
   - Smart installation of missing tools (curl, wget, nala, etc.)
   - Nala package manager for better APT experience
   - Comprehensive dependency library for scripts
-  - See [DEPENDENCIES.md](DEPENDENCIES.md) for full documentation
+  - See [docs/DEPENDENCIES.md](docs/DEPENDENCIES.md) for full documentation
 
 - **Interactive TUI Menu** ⭐ NEW!
   - Beautiful console interface with multiple backend support (Gum, Dialog, Bash)
   - Automatic script discovery and organization
   - Integrated dependency checking
   - Easy navigation and installer execution
-  - See [TUI_GUIDE.md](TUI_GUIDE.md) for full documentation
+  - See [docs/TUI_GUIDE.md](docs/TUI_GUIDE.md) for full documentation
 
 - **Enhanced Bash Environment**:
   - Custom `.bashrc` configuration with Starship prompt

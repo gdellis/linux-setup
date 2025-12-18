@@ -2,10 +2,37 @@
 #
 # setup_nala.sh - Nala Package Manager Installation Script
 # Description: Installs nala, a modern front-end for APT with better UX
-# Usage: ./setup_nala.sh
+# Category: System
+# Usage: ./setup_nala.sh [OPTIONS]
+#        -y, --yes, --non-interactive    Skip confirmation prompts
+#        -h, --help                      Show help message
 #
 
 set -euo pipefail
+
+# Parse command line arguments
+NON_INTERACTIVE=false
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        -y|--yes|--non-interactive)
+            NON_INTERACTIVE=true
+            shift
+            ;;
+        -h|--help)
+            echo "Usage: $0 [OPTIONS]"
+            echo ""
+            echo "Options:"
+            echo "  -y, --yes, --non-interactive    Skip confirmation prompts"
+            echo "  -h, --help                      Show this help message"
+            exit 0
+            ;;
+        *)
+            echo "Unknown option: $1"
+            echo "Use --help for usage information"
+            exit 1
+            ;;
+    esac
+done
 
 # Save and change directories
 readonly ORIG_PWD=$(pwd)
@@ -14,6 +41,8 @@ readonly ORIG_PWD=$(pwd)
 SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 # shellcheck source=../lib/logging.sh
 source "$SCRIPT_DIR/../lib/logging.sh"
+# shellcheck source=../lib/dependencies.sh
+source "$SCRIPT_DIR/../lib/dependencies.sh"
 
 # ------------------------------------------------------------
 # Setup Logging
@@ -31,6 +60,9 @@ mkdir -p "$LOG_DIR"
 
 log_info "=== $APP_NAME Installer Started ==="
 log_info "Log file: $LOG_FILE"
+if [[ "$NON_INTERACTIVE" == "true" ]]; then
+    log_info "Running in non-interactive mode"
+fi
 # endregion
 
 cleanup()
@@ -87,12 +119,12 @@ install_nala_ubuntu() {
     if [[ "${version%%.*}" -ge 22 ]]; then
         log_info "Using official Ubuntu repository..."
 
-        if ! sudo apt-get update; then
+        if ! update_package_lists; then
             log_error "Failed to update package lists"
             return 1
         fi
 
-        if ! sudo apt-get install -y nala; then
+        if ! install_package nala; then
             log_error "Failed to install nala"
             return 1
         fi
@@ -113,12 +145,12 @@ install_nala_ubuntu() {
             return 1
         fi
 
-        if ! sudo apt-get update; then
+        if ! update_package_lists; then
             log_error "Failed to update package lists"
             return 1
         fi
 
-        if ! sudo apt-get install -y nala; then
+        if ! install_package nala; then
             log_error "Failed to install nala"
             return 1
         fi
@@ -137,12 +169,12 @@ install_nala_debian() {
     if [[ "${version%%.*}" -ge 12 ]]; then
         log_info "Using official Debian repository..."
 
-        if ! sudo apt-get update; then
+        if ! update_package_lists; then
             log_error "Failed to update package lists"
             return 1
         fi
 
-        if ! sudo apt-get install -y nala; then
+        if ! install_package nala; then
             log_error "Failed to install nala"
             return 1
         fi
@@ -161,12 +193,12 @@ install_nala_debian() {
                 sudo tee /etc/apt/sources.list.d/bullseye-backports.list
         fi
 
-        if ! sudo apt-get update; then
+        if ! update_package_lists; then
             log_error "Failed to update package lists"
             return 1
         fi
 
-        if sudo apt-get install -y -t bullseye-backports nala; then
+        if install_package -t bullseye-backports nala; then
             log_success "Nala installed from backports"
             return 0
         else
@@ -207,12 +239,17 @@ main() {
     # Check if already installed
     if command -v nala &> /dev/null; then
         local installed_version
-        installed_version=$(nala --version 2>&1 | grep -oP '\d+\.\d+\.\d+' || echo "unknown")
+        installed_version=$(nala --version 2>&1 | grep -oP '\\d+\\.\\d+\\.\\d+' || echo "unknown")
         log_warning "Nala is already installed (version: $installed_version)"
-        read -rp "Do you want to reconfigure/reinstall? [y/N]: " reinstall
-        if [[ ! "$reinstall" =~ ^[Yy]$ ]]; then
-            log_info "Installation cancelled"
-            exit 0
+        
+        if [[ "$NON_INTERACTIVE" == "true" ]]; then
+            log_info "Non-interactive mode: Proceeding with reconfiguration/reinstallation"
+        else
+            read -rp "Do you want to reconfigure/reinstall? [y/N]: " reinstall
+            if [[ ! "$reinstall" =~ ^[Yy]$ ]]; then
+                log_info "Installation cancelled"
+                exit 0
+            fi
         fi
     fi
 

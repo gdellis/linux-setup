@@ -2,15 +2,44 @@
 #
 # setup_ollama.sh - Ollama Installation and Model Download Script
 # Description: Installs Ollama and downloads configured cloud and local AI models
-# Usage: ./setup_ollama.sh
+# Category: AI/ML
+# Usage: ./setup_ollama.sh [OPTIONS]
+#        -y, --yes, --non-interactive    Skip confirmation prompts
+#        -h, --help                      Show help message
 #
 
 set -euo pipefail
+
+# Parse command line arguments
+NON_INTERACTIVE=false
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        -y|--yes|--non-interactive)
+            NON_INTERACTIVE=true
+            shift
+            ;;
+        -h|--help)
+            echo "Usage: $0 [OPTIONS]"
+            echo ""
+            echo "Options:"
+            echo "  -y, --yes, --non-interactive    Skip confirmation prompts"
+            echo "  -h, --help                      Show this help message"
+            exit 0
+            ;;
+        *)
+            echo "Unknown option: $1"
+            echo "Use --help for usage information"
+            exit 1
+            ;;
+    esac
+done
 
 # Get script directory and source logging library
 SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 # shellcheck source=../lib/logging.sh
 source "$SCRIPT_DIR/../lib/logging.sh"
+# shellcheck source=../lib/dependencies.sh
+source "$SCRIPT_DIR/../lib/dependencies.sh"
 
 # ------------------------------------------------------------
 # Setup Logging
@@ -27,6 +56,9 @@ mkdir -p "$LOG_DIR"
 
 log_info "=== $APP_NAME Installer Started ==="
 log_info "Log file: $LOG_FILE"
+if [[ "$NON_INTERACTIVE" == "true" ]]; then
+    log_info "Running in non-interactive mode"
+fi
 # endregion
 
 # ------------------------------------------------------------
@@ -75,12 +107,10 @@ handle_error() {
 # ------------------------------------------------------------
 
 check_dependencies() {
-    local deps=("curl" "jq")
-    for dep in "${deps[@]}"; do
-        if ! command -v "$dep" &> /dev/null; then
-            handle_error "$dep is required but not installed"
-        fi
-    done
+    # Use the shared dependency library
+    if ! ensure_dependencies curl jq; then
+        handle_error "Required dependencies (curl, jq) are missing and could not be installed"
+    fi
 }
 
 # ------------------------------------------------------------
@@ -154,6 +184,16 @@ main() {
     if ! command -v ollama &> /dev/null; then
         log_warning "Ollama not found. Installing..."
         install_ollama
+    elif [[ "$NON_INTERACTIVE" == "false" ]]; then
+        echo
+        log_warning "⚠️  Ollama is already installed"
+        log_info "📦 This installer will download additional models"
+        echo
+        read -rp "Do you want to continue with model downloads? [y/N]: " continue_install
+        if [[ ! "$continue_install" =~ ^[Yy]$ ]]; then
+            log_info "Model downloads cancelled"
+            exit 0
+        fi
     fi
     
     # Cache downloaded models
