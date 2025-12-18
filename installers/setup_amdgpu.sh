@@ -114,6 +114,48 @@ readonly AMDGPU_FW_BASE_URL="https://git.kernel.org/pub/scm/linux/kernel/git/fir
 # Helper Functions
 # ------------------------------------------------------------
 
+# Patch amdgpu-install script to recognize Zorin OS
+patch_amdgpu_install_script() {
+    local installer_path="/usr/bin/amdgpu-install"
+    
+    # Check if the script exists
+    if [[ ! -f "$installer_path" ]]; then
+        log_warning "amdgpu-install script not found at $installer_path"
+        return 0
+    fi
+    
+    # Check if Zorin is already supported
+    if sudo grep -q "zorin|ubuntulinuxmint|debian" "$installer_path"; then
+        log_info "Zorin OS already supported in amdgpu-install script"
+        return 0
+    fi
+    
+    # Check if the pattern we want to replace exists
+    if sudo grep -q "ubuntulinuxmint|debian)" "$installer_path"; then
+        log_info "Patching amdgpu-install script to support Zorin OS..."
+        # Create backup first
+        local timestamp
+        timestamp=$(date +%Y%m%d_%H%M%S)
+        if sudo cp "$installer_path" "${installer_path}.backup.${timestamp}"; then
+            # Replace the pattern to include Zorin
+            if sudo sed -i 's/ubuntulinuxmint|debian)/zorin|ubuntulinuxmint|debian)/g' "$installer_path"; then
+                log_success "Successfully patched amdgpu-install script to support Zorin OS"
+                return 0
+            else
+                log_error "Failed to patch amdgpu-install script"
+                return 1
+            fi
+        else
+            log_error "Failed to create backup of amdgpu-install script"
+            return 1
+        fi
+    else
+        log_info "amdgpu-install script pattern not found, skipping patch"
+    fi
+    
+    return 0
+}
+
 # Install AMD GPU drivers
 install_amdgpu_drivers() {
     log_info "Installing AMD GPU drivers..."
@@ -161,6 +203,11 @@ install_amdgpu_drivers() {
     if ! sudo apt install -y "$AMDGPU_DEB_FILE"; then
         log_error "Failed to install AMD GPU installer package"
         return 1
+    fi
+    
+    # Patch the amdgpu-install script to recognize Zorin OS
+    if ! patch_amdgpu_install_script; then
+        log_warning "Failed to patch amdgpu-install script for Zorin OS support"
     fi
     
     # Run the AMD GPU installer with graphics and ROCm use cases
