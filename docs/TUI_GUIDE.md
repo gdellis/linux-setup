@@ -9,6 +9,16 @@ This guide explains how to use the interactive console menu for the linux-setup 
 ./menu.sh
 ```
 
+Or run installers directly from GitHub without cloning:
+
+```bash
+# Run any installer directly from GitHub
+bash <(curl -fsSL https://raw.githubusercontent.com/yourusername/linux-setup/main/bootstrap.sh) setup_vscode.sh
+
+# Or run specific installers directly
+bash <(curl -fsSL https://raw.githubusercontent.com/yourusername/linux-setup/main/installers/setup_neovim.sh)
+```
+
 The menu will automatically detect the best available TUI backend and provide an interactive interface for running installer scripts.
 
 ## TUI Backends

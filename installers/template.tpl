@@ -3,17 +3,57 @@
 # Template for creating new installer scripts
 # Description: Boilerplate installer script with logging, error handling, and checksum verification
 # Usage: Use new_installer.sh to create a new script from this template
+#        Can also be run remotely with: bash <(curl -fsSL https://raw.githubusercontent.com/user/repo/main/installers/script.sh)
 #
 
 set -euo pipefail
 
+# Detect if we're running locally or remotely
+is_running_remotely() {
+    local script_path="${BASH_SOURCE[0]}"
+    # If script is in a temporary directory, it's likely running remotely
+    if [[ "$script_path" == /tmp/* ]] || [[ "$script_path" == /var/tmp/* ]]; then
+        return 0  # true
+    else
+        return 1  # false
+    fi
+}
+
+# Function to source library remotely or locally
+source_library() {
+    local library_name="$1"
+    
+    if is_running_remotely; then
+        # Source library from GitHub
+        local repo_user="gdellis"  # Replace with actual username
+        local repo_name="linux-setup"   # Replace with actual repo name
+        
+        echo "Sourcing $library_name from remote repository..."
+        if ! source <(curl -fsSL "https://raw.githubusercontent.com/$repo_user/$repo_name/main/lib/$library_name"); then
+            echo "ERROR: Failed to source $library_name from remote repository"
+            exit 1
+        fi
+    else
+        # Source library locally
+        local script_dir
+        script_dir=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &>/dev/null && pwd)
+        
+        if [[ -f "$script_dir/../lib/$library_name" ]]; then
+            # shellcheck source=/dev/null
+            source "$script_dir/../lib/$library_name"
+        else
+            echo "ERROR: Local library $library_name not found"
+            exit 1
+        fi
+    fi
+}
+
+# Source required libraries
+source_library "logging.sh"
+source_library "dependencies.sh"
+
 # Save and change directories
 readonly ORIG_PWD=$(pwd)
-
-# Get script directory and source logging library
-SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
-# shellcheck source=../lib/logging.sh
-source "$SCRIPT_DIR/../lib/logging.sh"
 
 # ------------------------------------------------------------
 # Setup Logging
