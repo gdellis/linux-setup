@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 #
-# py_menu.py - Python-based TUI for Linux Setup with Categories
-# Description: Enhanced menu system with categories, search, and better navigation
+# py_menu.py - Python-based TUI for Linux Setup with Categories and Multi-Select
+# Description: Enhanced menu system with categories, search, multi-select, and batch installation
 # Usage: ./py_menu.py
 #
 
@@ -19,12 +19,15 @@ class InstallerMenu:
         self.installers_dir = self.script_dir / "installers"
         self.installers = self.discover_installers()
         self.categories = self.organize_by_category()
-        self.current_view = "main"  # "main", "category", or "search"
+        self.current_view = "main"  # "main", "category", "search", or "multiselect"
         self.selected = 0
         self.offset = 0
         self.search_term = ""
         self.filtered_items = []
         self.current_category = None
+        self.multiselect_mode = False
+        self.selected_items = set()  # Set of indices for multiselect
+        self.multiselect_items = []  # Items available for multiselect
 
     def discover_installers(self):
         """Discover all setup_*.sh scripts"""
@@ -90,6 +93,8 @@ class InstallerMenu:
             return self.filtered_items
         elif self.current_view == "category":
             return self.categories.get(self.current_category, [])
+        elif self.current_view == "multiselect":
+            return self.multiselect_items
         else:  # main view
             # Return categories with item counts
             items = []
@@ -128,6 +133,33 @@ class InstallerMenu:
                 
         self.filtered_items = all_items
 
+    def enter_multiselect_mode(self):
+        """Enter multiselect mode with current items"""
+        self.multiselect_mode = True
+        self.current_view = "multiselect"
+        self.selected_items = set()
+        
+        # Get current items for multiselect
+        if self.search_term and self.current_view == "search":
+            self.multiselect_items = self.filtered_items.copy()
+        elif self.current_category:
+            self.multiselect_items = self.categories.get(self.current_category, []).copy()
+        else:
+            # If in main view, collect all installers from all categories
+            self.multiselect_items = []
+            for category_installers in self.categories.values():
+                self.multiselect_items.extend(category_installers)
+        
+        self.selected = 0
+        self.offset = 0
+
+    def toggle_selection(self, idx):
+        """Toggle selection of an item in multiselect mode"""
+        if idx in self.selected_items:
+            self.selected_items.remove(idx)
+        else:
+            self.selected_items.add(idx)
+
     def draw_menu(self, stdscr):
         """Draw the menu interface"""
         height, width = stdscr.getmaxyx()
@@ -140,6 +172,8 @@ class InstallerMenu:
             title = f"Search Results: '{self.search_term}'"
         elif self.current_view == "category":
             title = f"Category: {self.current_category}"
+        elif self.current_view == "multiselect":
+            title = "Multi-Select Mode"
         else:
             title = "Linux Setup - Installation Menu"
             
@@ -151,8 +185,12 @@ class InstallerMenu:
             breadcrumb = "Main"
             if self.current_view == "category":
                 breadcrumb += f" > {self.current_category}"
-            if self.current_view == "search":
+            elif self.current_view == "search":
                 breadcrumb += f" > Search"
+            elif self.current_view == "multiselect":
+                if self.current_category:
+                    breadcrumb += f" > {self.current_category}"
+                breadcrumb += " > Multi-Select"
             stdscr.addstr(2, 0, breadcrumb[:width-1])
             stdscr.addstr(3, 0, "-" * width)
             search_row = 4
@@ -166,17 +204,21 @@ class InstallerMenu:
         
         # Instructions
         if self.current_view == "main":
-            instructions = "↑/↓: Navigate | Enter: Select | /: Search | q: Quit"
+            instructions = "↑/↓: Navigate | Enter: Select | /: Search | m: Multi-Select All | q: Quit"
         elif self.current_view == "category":
-            instructions = "↑/↓: Navigate | Enter: Select | /: Search | ←: Back | q: Quit"
-        else:  # search view
-            instructions = "↑/↓: Navigate | Enter: Select | ESC: Clear Search | ←: Back | q: Quit"
+            instructions = "↑/↓: Navigate | Enter: Select | /: Search | m: Multi-Select | ←: Back | q: Quit"
+        elif self.current_view == "search":
+            instructions = "↑/↓: Navigate | Enter: Select | m: Multi-Select | ESC: Clear Search | ←: Back | q: Quit"
+        elif self.current_view == "multiselect":
+            instructions = "↑/↓: Navigate | Space: Toggle | Enter: Install Selected | a: Select All | ←: Back | q: Quit"
+        else:
+            instructions = "↑/↓: Navigate | Enter: Select | ←: Back | q: Quit"
             
         stdscr.addstr(search_row + 2, 0, instructions[:width-1])
         stdscr.addstr(search_row + 3, 0, "-" * width)
         
         # Calculate visible items
-        max_visible = height - (search_row + 6)  # Reserve space for header/footer
+        max_visible = height - (search_row + 7)  # Reserve space for header/footer/instructions
         if max_visible <= 0:
             return
             
@@ -207,8 +249,12 @@ class InstallerMenu:
             else:
                 attr = curses.A_NORMAL
                 
-            # Format display based on item type
-            if item.get('type') == 'category':
+            # Format display based on item type and mode
+            if self.current_view == "multiselect":
+                # Multi-select mode with checkboxes
+                checked = "☒" if idx in self.selected_items else "☐"
+                line = f"{checked} {item['name']:<20} - {item['description']}"
+            elif item.get('type') == 'category':
                 line = f"📁 {item['name']:<20} - {item['description']}"
             elif item.get('type') == 'installer':
                 line = f"⚙️  {item['name']:<20} - {item['description']}"
@@ -220,15 +266,26 @@ class InstallerMenu:
             
         # Status line
         if items:
-            status = f"Items: {len(items)} | Selected: {self.selected + 1}"
+            if self.current_view == "multiselect":
+                status = f"Items: {len(items)} | Selected: {len(self.selected_items)} | Current: {self.selected + 1}"
+            else:
+                status = f"Items: {len(items)} | Selected: {self.selected + 1}"
         else:
             status = "No items found"
-        stdscr.addstr(height - 1, 0, status[:width-1], curses.A_BOLD)
+        stdscr.addstr(height - 2, 0, status[:width-1], curses.A_BOLD)
         
+        # Additional info line
+        if self.current_view == "multiselect":
+            info = f"Space: Toggle item | Enter: Install selected | a: Select all"
+            stdscr.addstr(height - 1, 0, info[:width-1], curses.A_DIM)
+        elif self.multiselect_mode:
+            info = "Multi-select mode available (press 'm' to enter)"
+            stdscr.addstr(height - 1, 0, info[:width-1], curses.A_DIM)
+            
         stdscr.refresh()
 
     def run_installer(self, stdscr, installer_path):
-        """Run the selected installer"""
+        """Run a single installer"""
         stdscr.clear()
         height, width = stdscr.getmaxyx()
         
@@ -268,6 +325,55 @@ class InstallerMenu:
         
         return stdscr
 
+    def run_batch_installers(self, stdscr, installer_paths):
+        """Run multiple installers in batch"""
+        if not installer_paths:
+            return stdscr
+            
+        stdscr.clear()
+        height, width = stdscr.getmaxyx()
+        
+        stdscr.addstr(0, 0, "Batch Installation", curses.A_BOLD)
+        stdscr.addstr(1, 0, f"Installing {len(installer_paths)} items...")
+        stdscr.addstr(2, 0, "Press Ctrl+C to cancel")
+        stdscr.refresh()
+        
+        # End curses mode temporarily
+        curses.endwin()
+        
+        success_count = 0
+        failed_count = 0
+        
+        for i, installer_path in enumerate(installer_paths):
+            print(f"\n[{i+1}/{len(installer_paths)}] Installing: {Path(installer_path).name}")
+            
+            try:
+                result = subprocess.run(["bash", installer_path], check=True)
+                success_count += 1
+                print(f"✅ {Path(installer_path).name} installed successfully!")
+            except subprocess.CalledProcessError as e:
+                failed_count += 1
+                print(f"❌ {Path(installer_path).name} failed with exit code {e.returncode}")
+            except KeyboardInterrupt:
+                print("\n❌ Installation cancelled by user")
+                break
+                
+        # Show summary
+        print(f"\n📊 Installation Summary:")
+        print(f"   Successful: {success_count}")
+        print(f"   Failed: {failed_count}")
+        print(f"   Total: {len(installer_paths)}")
+        
+        input("\nPress Enter to return to menu...")
+            
+        # Restart curses mode
+        stdscr = curses.initscr()
+        curses.cbreak()
+        stdscr.keypad(True)
+        curses.noecho()
+        
+        return stdscr
+
     def navigate_back(self):
         """Navigate back to previous view"""
         if self.current_view == "search":
@@ -277,7 +383,18 @@ class InstallerMenu:
         elif self.current_view == "category":
             self.current_view = "main"
             self.current_category = None
+        elif self.current_view == "multiselect":
+            self.current_view = "main" if self.current_category is None else "category"
+            self.multiselect_mode = False
+            self.selected_items = set()
+            self.multiselect_items = []
         # In main view, back quits
+
+    def select_all_items(self):
+        """Select all items in multiselect mode"""
+        if self.current_view == "multiselect":
+            items = self.get_current_items()
+            self.selected_items = set(range(len(items)))
 
     def run(self, stdscr):
         """Main menu loop"""
@@ -306,7 +423,25 @@ class InstallerMenu:
                     if items and self.selected < len(items):
                         item = items[self.selected]
                         
-                        if self.current_view == "main" and item.get('type') == 'category':
+                        if self.current_view == "multiselect":
+                            # In multiselect mode, Enter installs selected items
+                            if self.selected_items:
+                                # Get paths of selected items
+                                selected_paths = []
+                                for idx in self.selected_items:
+                                    if idx < len(self.multiselect_items):
+                                        selected_paths.append(self.multiselect_items[idx]['path'])
+                                
+                                if selected_paths:
+                                    stdscr = self.run_batch_installers(stdscr, selected_paths)
+                                    # Exit multiselect mode after installation
+                                    self.current_view = "main" if self.current_category is None else "category"
+                                    self.multiselect_mode = False
+                                    self.selected_items = set()
+                                    self.multiselect_items = []
+                                    self.selected = 0
+                                    self.offset = 0
+                        elif self.current_view == "main" and item.get('type') == 'category':
                             # Enter category
                             self.current_view = "category"
                             self.current_category = item['name']
@@ -317,6 +452,18 @@ class InstallerMenu:
                             installer_path = item.get('path', '')
                             if installer_path:
                                 stdscr = self.run_installer(stdscr, installer_path)
+                elif key == ord(' '):
+                    # Spacebar to toggle selection in multiselect mode
+                    if self.current_view == "multiselect":
+                        self.toggle_selection(self.selected)
+                elif key == ord('a') or key == ord('A'):
+                    # Select all in multiselect mode
+                    if self.current_view == "multiselect":
+                        self.select_all_items()
+                elif key == ord('m') or key == ord('M'):
+                    # Enter multiselect mode
+                    if self.current_view in ["category", "search"] or (self.current_view == "main" and not self.search_term):
+                        self.enter_multiselect_mode()
                 elif key == curses.KEY_LEFT or key == ord('h') or key == ord('H'):
                     # Navigate back
                     self.navigate_back()
@@ -349,12 +496,15 @@ class InstallerMenu:
 def main():
     """Main entry point"""
     if len(sys.argv) > 1 and sys.argv[1] == "--help":
-        print("Linux Setup Menu - Python TUI with Categories")
+        print("Linux Setup Menu - Python TUI with Categories and Multi-Select")
         print("Usage: ./py_menu.py")
         print("Navigation:")
         print("  Arrow keys - Move selection")
         print("  Enter - Select category/run installer")
         print("  / - Start search mode")
+        print("  m - Enter multi-select mode")
+        print("  Space - Toggle selection in multi-select mode")
+        print("  a - Select all items in multi-select mode")
         print("  ←/h - Go back to previous menu")
         print("  ESC - Clear search/go back")
         print("  q - Quit menu")
