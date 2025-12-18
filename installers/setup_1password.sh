@@ -69,7 +69,6 @@ trap cleanup EXIT INT TERM ERR
 # ------------------------------------------------------------
 
 readonly OP_GPG_KEY_URL="https://downloads.1password.com/linux/keys/1password.asc"
-readonly OP_GPG_KEY_FILE="$DL_DIR/1password.asc"
 readonly OP_DEB_REPO="https://downloads.1password.com/linux/debian/amd64/stable"
 readonly OP_DEB_COMPONENTS="stable"
 readonly OP_PACKAGE_NAME="1password"
