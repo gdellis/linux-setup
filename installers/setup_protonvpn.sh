@@ -14,6 +14,8 @@ readonly ORIG_PWD=$(pwd)
 SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 # shellcheck source=../lib/logging.sh
 source "$SCRIPT_DIR/../lib/logging.sh"
+# shellcheck source=../lib/dependencies.sh
+source "$SCRIPT_DIR/../lib/dependencies.sh"
 
 # ------------------------------------------------------------
 # Setup Logging
@@ -60,49 +62,121 @@ cleanup()
     # Return to original directory
     cd "$ORIG_PWD" 2>/dev/null || true
     
-    echo "Cleanup complete"
+    log_info "Cleanup complete"
     # shellcheck disable=SC2086
     exit $exit_code
-
 }
 
 # Set trap for various exit signals
 trap cleanup EXIT INT TERM ERR
 
 # ------------------------------------------------------------
-
-log_info "📥 Downloading Proton VPN"
+# Configuration
+# ------------------------------------------------------------
 
 readonly PROTON_URL="https://repo.protonvpn.com/debian/dists/stable/main/binary-all/protonvpn-stable-release_1.0.8_all.deb"
 readonly PROTON_FILE="$DL_DIR/protonvpn.deb"
+readonly EXPECTED_SHA256="0b14e71586b22e498eb20926c48c7b434b751149b1f2af9902ef1cfe6b03e180"
 
-if curl --output "$PROTON_FILE" "$PROTON_URL";then
+# ------------------------------------------------------------
+# Helper Functions
+# ------------------------------------------------------------
+
+# Install Proton VPN
+install_protonvpn() {
+    log_info "📥 Downloading Proton VPN"
+    
+    # Ensure dependencies
+    ensure_dependencies --auto-install curl
+    
+    # Download the package
+    if ! curl -fsSL --output "$PROTON_FILE" "$PROTON_URL"; then
+        log_error "Error downloading package"
+        return 1
+    fi
+    
     log_info "Verifying download integrity"
-
-    # Expected SHA256 checksum for protonvpn-stable-release_1.0.8_all.deb
-    readonly EXPECTED_SHA256="0b14e71586b22e498eb20926c48c7b434b751149b1f2af9902ef1cfe6b03e180"
-
+    
     # Calculate the actual checksum
+    local actual_sha256
     actual_sha256=$(sha256sum "$PROTON_FILE" | awk '{print $1}')
-
+    
     if [[ "$actual_sha256" != "$EXPECTED_SHA256" ]]; then
         log_error "Checksum verification failed!"
         log_error "Expected: $EXPECTED_SHA256"
         log_error "Got:      $actual_sha256"
+        return 1
+    fi
+    
+    log_success "Checksum verification passed"
+    
+    # Update package lists
+    log_info "Updating package lists..."
+    update_package_lists
+    
+    # Install the package
+    log_info "Installing Proton VPN release package..."
+    if ! sudo apt install -y "$PROTON_FILE"; then
+        log_error "Failed to install Proton VPN release package"
+        return 1
+    fi
+    
+    # Update package lists again to include Proton VPN repository
+    log_info "Updating package lists with Proton VPN repository..."
+    update_package_lists
+    
+    # Install Proton VPN GNOME desktop integration
+    log_info "Installing Proton VPN GNOME desktop integration..."
+    if ! sudo apt install -y proton-vpn-gnome-desktop; then
+        log_warning "Failed to install proton-vpn-gnome-desktop. Continuing with basic installation..."
+    fi
+    
+    log_success "Proton VPN installed successfully"
+    return 0
+}
+
+# ------------------------------------------------------------
+# Main Installation Logic
+# ------------------------------------------------------------
+
+main() {
+    log_info "Starting Proton VPN installation..."
+    
+    # Check if running on Ubuntu/Debian system
+    if [[ ! -f /etc/os-release ]]; then
+        log_error "Cannot determine OS. This script is designed for Ubuntu/Debian systems."
         exit 1
     fi
-
-    log_success "Checksum verification passed"
-
-    sudo nala install -y "$PROTON_FILE"
-    sudo nala update
-
-    sudo nala -y install proton-vpn-gnome-desktop
-
-    log_success "Proton VPN installed successfully"
+    
+    # Source OS information
+    . /etc/os-release
+    log_info "Detected OS: $ID $VERSION_ID"
+    
+    # Verify supported OS
+    case "$ID" in
+        ubuntu|debian|zorin|linuxmint)
+            log_info "OS is supported: $ID"
+            ;;
+        *)
+            log_warning "OS $ID may not be officially supported. Proceeding with installation anyway."
+            ;;
+    esac
+    
+    # Install Proton VPN
+    if ! install_protonvpn; then
+        log_error "Proton VPN installation failed"
+        exit 1
+    fi
+    
+    log_success "================================"
+    log_success "✓ Proton VPN installation completed!"
+    log_success "================================"
+    log_info "You can now launch Proton VPN from your applications menu"
+    log_info "or by running 'protonvpn' from the terminal."
     exit 0
-else log_error "Error downloading package"
-    exit 1
-fi
+}
 
-exit 0
+# Run main function if script is executed directly
+if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+    main "$@"
+fi
