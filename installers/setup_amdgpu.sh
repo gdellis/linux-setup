@@ -138,7 +138,7 @@ patch_amdgpu_install_script() {
         timestamp=$(date +%Y%m%d_%H%M%S)
         if sudo cp "$installer_path" "${installer_path}.backup.${timestamp}"; then
             # Replace the pattern to include Zorin
-            if sudo sed -i 's/ubuntu|linuxmint|debian)/zorin|ubuntulinuxmint|debian)/g' "$installer_path"; then
+            if sudo sed -i 's/ubuntu|linuxmint|debian)/zorin|ubuntu|linuxmint|debian)/g' "$installer_path"; then
                 log_success "Successfully patched amdgpu-install script to support Zorin OS"
                 return 0
             else
