@@ -72,6 +72,23 @@ readonly AMDGPU_DEB_URL="https://repo.radeon.com/amdgpu-install/7.1.1/ubuntu/jam
 readonly AMDGPU_DEB_FILE="$DL_DIR/amdgpu-install_7.1.1.70101-1_all.deb"
 readonly AMDGPU_DEB_SHA256=""  # TODO: Add checksum when available
 
+# AMD GPU firmware files
+readonly AMDGPU_FW_DIR="/lib/firmware/amdgpu"
+readonly AMDGPU_FW_FILES=(
+    "cyan_skillfish_gpu_info.bin"
+    "ip_discovery.bin"
+    "vega10_cap.bin"
+    "navi12_cap.bin"
+    "aldebaran_cap.bin"
+    "gc_11_0_0_toc.bin"
+    "gc_12_0_1_toc.bin"
+    "gc_12_0_0_toc.bin"
+    "gc_11_0_3_mes.bin"
+    "sienna_cichlid_mes1.bin"
+    "navi10_mes.bin"
+)
+readonly AMDGPU_FW_BASE_URL="https://git.kernel.org/pub/scm/linux/kernel/git/firmware/linux-firmware.git/plain/amdgpu"
+
 # ------------------------------------------------------------
 # Helper Functions
 # ------------------------------------------------------------
@@ -123,6 +140,58 @@ install_amdgpu_drivers() {
     log_success "AMD GPU drivers installed successfully"
 }
 
+# Download AMD GPU firmware files
+download_amdgpu_firmware() {
+    log_info "Downloading AMD GPU firmware files..."
+    
+    # Ensure dependencies
+    ensure_dependencies --auto-install curl
+    
+    # Create target directory if it doesn't exist
+    log_info "Creating firmware directory: $AMDGPU_FW_DIR"
+    if ! sudo mkdir -p "$AMDGPU_FW_DIR"; then
+        log_error "Failed to create firmware directory: $AMDGPU_FW_DIR"
+        return 1
+    fi
+    
+    local file_downloaded=0
+    local file
+    local _path
+    
+    for file in "${AMDGPU_FW_FILES[@]}"; do
+        _path="$AMDGPU_FW_DIR/$file"
+        
+        # Skip if file already exists
+        if [[ -f "$_path" ]]; then
+            log_info "Firmware $file already exists, skipping..."
+            continue
+        fi
+        
+        # Download the firmware file
+        log_info "Downloading firmware: $file"
+        if sudo curl -fsSL -o "$_path" "$AMDGPU_FW_BASE_URL/$file"; then
+            file_downloaded=1
+            log_success "Firmware $file downloaded successfully."
+        else
+            log_warning "Failed to download $file."
+        fi
+    done
+    
+    # Update initramfs if any files were downloaded
+    if [[ $file_downloaded -gt 0 ]]; then
+        log_info "Updating initramfs..."
+        if sudo update-initramfs -u; then
+            log_success "Initramfs updated successfully."
+        else
+            log_warning "Failed to update initramfs."
+        fi
+    else
+        log_info "No new firmware files downloaded, initramfs update not needed."
+    fi
+    
+    return 0
+}
+
 # Add user to GPU groups
 configure_user_groups() {
     log_info "Adding user to GPU groups..."
@@ -153,6 +222,11 @@ main() {
     if ! install_amdgpu_drivers; then
         log_error "AMD GPU driver installation failed"
         exit 1
+    fi
+    
+    # Download AMD GPU firmware files
+    if ! download_amdgpu_firmware; then
+        log_warning "AMD GPU firmware download failed. Continuing with installation..."
     fi
     
     # Configure user groups
