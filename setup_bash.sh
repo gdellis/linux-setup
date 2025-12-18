@@ -40,7 +40,6 @@ if [[ -z "$TOP" ]]; then
 fi
 
 export TOP
-log_info "(setup_bash.sh) Project root resolved to: $TOP"
 # ------------------------------------------------------------
 # endregion
 # ------------------------------------------------------------
@@ -52,6 +51,9 @@ LIB_DIR="$TOP/lib"
 
 # Source Logger
 source "$LIB_DIR/logging.sh" || exit 1
+
+# Log that we've successfully set up the logger and found project root
+log_info "(setup_bash.sh) Project root resolved to: $TOP"
 # ------------------------------------------------------------
 # endregion
 # ------------------------------------------------------------
@@ -96,32 +98,12 @@ create_link()
             rm "$HOME/$_file"
         fi    
 
-        ln -s "$_target"
+        ln -sf "$_target" "$HOME/$_file"
     fi
     popd >/dev/null
 }
 
-backup_file()
-{   
-    
-    local _backup_dir="$1"
-    local _file="$2"
-    local _backup_file="$_backup_dir/${_file##*/}.bak"
-
-    if [ -f "$_file" ];then
-
-        if [ -L "$_file" ] ;then
-            log_warn "Removing previous symbolic link '$_file'"
-            rm "$_file"
-            return 0
-        fi
-
-        log_info "Backing up '$_file' to '$_backup_file'"
-        mv "$_file" "$_backup_file"
-    fi
-}
-
-## Get Dependancies
+## Get Dependencies
 # region
 dl_starship()
 {
@@ -146,15 +128,18 @@ dl_starship()
 log_info "Backing up current files..."
 
 TIMESTAMP=$(date '+%Y-%m-%d_%H%M%S')
-BACKUP_DIR="$SCRIPT_DIR/backups/$TIMESTAMP"
+# Store backups in user's home directory to avoid permission issues
+BACKUP_DIR="$HOME/backups/$TIMESTAMP"
 
-if [ ! -d "$BACKUP_DIR" ]; then
-    log_info "Creating directory: '$BACKUP_DIR'"
-    mkdir -p "$BACKUP_DIR"
+# Create backup directory in user's home directory
+if [ ! -d "$(dirname "$BACKUP_DIR")" ]; then
+    log_info "Creating backup parent directory: '$(dirname "$BACKUP_DIR")'"
+    mkdir -p "$(dirname "$BACKUP_DIR")"
 fi
 
 for i in "${BASH_FILES[@]}";do 
-    backup_file "$BACKUP_DIR" "$HOME/$i"
+    # Call shared library backup function instead of local one
+    backup_file "$HOME/$i"
 done
 
 
@@ -173,6 +158,6 @@ for i in "${BASH_FILES[@]}";do
     log_info "Creating Symbolic link..."
     log_info "Target: '$_target'"
     log_info "Link Name: '$HOME/$i'"
-    ln -s "$_target" "$HOME/$i"
+    ln -sf "$_target" "$HOME/$i"
 done
 
