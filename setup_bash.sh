@@ -1,163 +1,325 @@
 #!/usr/bin/env bash
-# ------------------------------------------------------------
-# region Script Setup
-# ------------------------------------------------------------
-# Uncomment for verbose debugging
-# set -x 
+# ----------------------------------------------------------------------------
+# Setup Script for Bash Configuration Files
+# ----------------------------------------------------------------------------
+# This script sets up bash configuration files on a new machine by:
+# 1. Backing up existing configuration files
+# 2. Copying new configuration files to ~/.config/bash
+# 3. Creating symbolic links from ~/.config/bash to $HOME
+# ----------------------------------------------------------------------------
 
-# ------------------------------------------------------------
-# Setup Directory Variables
-# ------------------------------------------------------------
-# region
-SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
+set -euo pipefail  # Exit on error, undefined vars, pipe failures
 
-# ------------------------------------------------------------
-# region Determine top‑level directory
-# ------------------------------------------------------------
-# 1️⃣ Prefer Git if we are inside a repo
-TOP="$(git rev-parse --show-toplevel 2>/dev/null)"
+# ----------------------------------------------------------------------------
+# Configuration Variables
+# ----------------------------------------------------------------------------
+readonly SCRIPT_NAME="setup_bash.sh"
+readonly TIMESTAMP=$(date '+%Y-%m-%d_%H%M%S')
+readonly BACKUP_DIR="$HOME/backups/bash_$TIMESTAMP"
 
-# 2️⃣ If not a Git repo, look for a known marker (e.g., .topdir)
-if [[ -z "$TOP" ]]; then
-  # Resolve the directory where this script resides
-  SCRIPT_DIR="$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
+# Destination for configuration files
+readonly BASH_CFG_DEST="${BASH_CFG_DEST:-$HOME/.config}"
+readonly BASH_CFG_DIR="$BASH_CFG_DEST/bash"
 
-  # Walk upward until we find .topdir or stop at /
-  DIR="$SCRIPT_DIR"
-  while [[ "$DIR" != "/" ]]; do
-    if [[ -f "$DIR/.topdir" ]]; then
-      TOP="$DIR"
-      break
-    fi
-    DIR="$(dirname "$DIR")"
-  done
-fi
-
-# 3️⃣ Give up with a clear error if we still have no root
-if [[ -z "$TOP" ]]; then
-  echo "❌  Unable to locate project root. Ensure you are inside a Git repo or that a .topdir file exists."
-  exit 1
-fi
-
-export TOP
-# ------------------------------------------------------------
-# endregion
-# ------------------------------------------------------------
-
-# ------------------------------------------------------------
-# region Setup Logger
-# ------------------------------------------------------------
-LIB_DIR="$TOP/lib"
-
-# Source Logger
-source "$LIB_DIR/logging.sh" || exit 1
-
-# Log that we've successfully set up the logger and found project root
-log_info "(setup_bash.sh) Project root resolved to: $TOP"
-# ------------------------------------------------------------
-# endregion
-# ------------------------------------------------------------
-
-# ------------------------------------------------------------
-# endregion
-# ------------------------------------------------------------
-
-BASH_CFG_DEST=~/.config
-BASH_FILES=(
+# Files to be managed
+readonly BASH_FILES=(
     ".bashrc"
     ".bash_aliases"
+    ".bash_profile"
+    ".bash_logout"
+    ".inputrc"
 )
 
-## Functions
-cleanup()
-{
-    _code=$?
+# ----------------------------------------------------------------------------
+# Utility Functions
+# ----------------------------------------------------------------------------
 
-    log_info "Cleaning up.."
-
-    # pop stack if needed
-    [ $(dirs -p | wc -l) -gt 0 ] && popd -0
-    log_info "$0 is finished"
-}
-trap cleanup EXIT
-
-
-create_link()
-{
-    local _file="$1"
-    local _dest="${2:-$BASH_CFG_DEST}"
-    local _target="$_dest/bash/$_file"
-    log_info "Creating Symbolic link..."
-    log_info "Target: '$_target'"
-    log_info "Link Name: '$HOME/$_file'"
-    pushd "$HOME" >/dev/null
-    if [ -f "$HOME/$_file" ] ;then
-        
-        if [ -L "$HOME/$_file" ];then
-            log_warn "Removing Link '$HOME/$_file'"
-            rm "$HOME/$_file"
-        fi    
-
-        ln -sf "$_target" "$HOME/$_file"
-    fi
-    popd >/dev/null
+# Print colored output
+print_info() {
+    echo -e "\033[1;36m[INFO]\033[0m $*"
 }
 
-## Get Dependencies
-# region
-dl_starship()
-{
-    # Check if already installed
-    if which starship;then
-        log_warn "Starship Prompt is already installed, Skipping"
+print_success() {
+    echo -e "\033[1;32m[SUCCESS]\033[0m $*"
+}
+
+print_warn() {
+    echo -e "\033[1;33m[WARN]\033[0m $*"
+}
+
+print_error() {
+    echo -e "\033[1;31m[ERROR]\033[0m $*" >&2
+}
+
+# Error handling
+handle_error() {
+    local line_number=$1
+    local error_code=$2
+    print_error "Error occurred at line $line_number with exit code $error_code"
+    exit "$error_code"
+}
+
+trap 'handle_error $LINENO $?' ERR
+
+# ----------------------------------------------------------------------------
+# Project Root Detection
+# ----------------------------------------------------------------------------
+detect_project_root() {
+    local script_dir
+    script_dir=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &>/dev/null && pwd)
+    
+    # 1️⃣ Prefer Git if we are inside a repo
+    if TOP=$(git rev-parse --show-toplevel 2>/dev/null); then
+        print_info "Found Git repository root: $TOP"
         return 0
     fi
-    # Download starship prompt
-    log_info "Downloading the starship prompt application"
-    curl -sS https://starship.rs/install.sh | sh
-
-    # Install Nerd Fonts
-
+    
+    # 2️⃣ If not a Git repo, look for a known marker (e.g., .topdir)
+    local dir="$script_dir"
+    while [[ "$dir" != "/" ]]; do
+        if [[ -f "$dir/.topdir" ]]; then
+            TOP="$dir"
+            print_info "Found project root via .topdir marker: $TOP"
+            return 0
+        fi
+        dir="$(dirname "$dir")"
+    done
+    
+    # 3️⃣ Give up with a clear error if we still have no root
+    print_error "Unable to locate project root. Ensure you are inside a Git repo or that a .topdir file exists."
+    exit 1
 }
 
-# endregion
+# ----------------------------------------------------------------------------
+# Logging Setup
+# ----------------------------------------------------------------------------
+setup_logging() {
+    local lib_dir="$TOP/lib"
+    
+    # Source Logger if available
+    if [[ -f "$lib_dir/logging.sh" ]]; then
+        source "$lib_dir/logging.sh"
+        print_info "Using shared logging library"
+    else
+        print_warn "Shared logging library not found, using built-in logging"
+    fi
+}
 
+# ----------------------------------------------------------------------------
+# Dependency Management
+# ----------------------------------------------------------------------------
+install_starship() {
+    if command -v starship &>/dev/null; then
+        print_info "Starship is already installed"
+        return 0
+    fi
+    
+    print_info "Installing Starship prompt..."
+    
+    # Install Starship
+    if curl -sS https://starship.rs/install.sh | sh -s -- -y; then
+        print_success "Starship installed successfully"
+    else
+        print_error "Failed to install Starship"
+        return 1
+    fi
+    
+    # Note about Nerd Fonts (manual step for user)
+    print_info "Please install a Nerd Font for full Starship functionality:"
+    print_info "https://www.nerdfonts.com/font-downloads"
+}
 
+# ----------------------------------------------------------------------------
+# Backup Functions
+# ----------------------------------------------------------------------------
+create_backup_directory() {
+    if [[ ! -d "$(dirname "$BACKUP_DIR")" ]]; then
+        print_info "Creating backup parent directory"
+        mkdir -p "$(dirname "$BACKUP_DIR")"
+    fi
+    
+    if [[ ! -d "$BACKUP_DIR" ]]; then
+        print_info "Creating backup directory: $BACKUP_DIR"
+        mkdir -p "$BACKUP_DIR"
+    fi
+}
 
-## Backup Current Setup
-log_info "Backing up current files..."
+backup_file() {
+    local file_path=$1
+    local file_name
+    
+    file_name=$(basename "$file_path")
+    
+    if [[ -f "$file_path" ]]; then
+        print_info "Backing up $file_name"
+        cp "$file_path" "$BACKUP_DIR/"
+        print_success "Backed up $file_name to $BACKUP_DIR/"
+    else
+        print_info "No existing $file_name to backup"
+    fi
+}
 
-TIMESTAMP=$(date '+%Y-%m-%d_%H%M%S')
-# Store backups in user's home directory to avoid permission issues
-BACKUP_DIR="$HOME/backups/$TIMESTAMP"
+backup_existing_configurations() {
+    print_info "Starting backup process..."
+    create_backup_directory
+    
+    for file in "${BASH_FILES[@]}"; do
+        backup_file "$HOME/$file"
+    done
+    
+    print_success "Backup process completed"
+}
 
-# Create backup directory in user's home directory
-if [ ! -d "$(dirname "$BACKUP_DIR")" ]; then
-    log_info "Creating backup parent directory: '$(dirname "$BACKUP_DIR")'"
-    mkdir -p "$(dirname "$BACKUP_DIR")"
-fi
+# ----------------------------------------------------------------------------
+# Configuration Deployment
+# ----------------------------------------------------------------------------
+create_config_directories() {
+    print_info "Creating configuration directories..."
+    
+    # Create main config directory
+    if [[ ! -d "$BASH_CFG_DEST" ]]; then
+        print_info "Creating $BASH_CFG_DEST"
+        mkdir -p "$BASH_CFG_DEST"
+    fi
+    
+    # Create bash config directory
+    if [[ ! -d "$BASH_CFG_DIR" ]]; then
+        print_info "Creating $BASH_CFG_DIR"
+        mkdir -p "$BASH_CFG_DIR"
+    fi
+}
 
-for i in "${BASH_FILES[@]}";do 
-    # Call shared library backup function instead of local one
-    backup_file "$HOME/$i"
-done
+copy_configuration_files() {
+    print_info "Copying configuration files..."
+    
+    # Change to script directory
+    local script_dir
+    script_dir=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &>/dev/null && pwd)
+    
+    # Copy bash directory
+    if [[ -d "$script_dir/bash" ]]; then
+        print_info "Copying bash configuration files..."
+        cp -r "$script_dir/bash"/* "$BASH_CFG_DIR/" || {
+            print_error "Failed to copy bash files"
+            return 1
+        }
+        print_success "Configuration files copied successfully"
+    else
+        print_error "Source bash directory not found: $script_dir/bash"
+        return 1
+    fi
+}
 
+create_symbolic_links() {
+    print_info "Creating symbolic links..."
+    
+    for file in "${BASH_FILES[@]}"; do
+        local target="$BASH_CFG_DIR/$file"
+        local link_name="$HOME/$file"
+        
+        # Skip if source file doesn't exist
+        if [[ ! -f "$target" ]]; then
+            print_warn "Source file not found, skipping: $target"
+            continue
+        fi
+        
+        # Backup existing file if it exists and is not a symlink
+        if [[ -f "$link_name" && ! -L "$link_name" ]]; then
+            print_info "Backing up existing $file"
+            backup_file "$link_name"
+        fi
+        
+        # Remove existing symlink or file
+        if [[ -e "$link_name" ]]; then
+            rm -f "$link_name"
+        fi
+        
+        # Create symbolic link
+        ln -sf "$target" "$link_name"
+        print_success "Created symlink: $link_name -> $target"
+    done
+}
 
-# Create and copy files to ~/.config/bash
-log_info "Creating directory $BASH_CFG_DEST if it doesn't exist"
-test -d "$BASH_CFG_DEST" || mkdir -p "$BASH_CFG_DEST"
+# ----------------------------------------------------------------------------
+# Cleanup and Finalization
+# ----------------------------------------------------------------------------
+cleanup() {
+    local exit_code=$?
+    
+    if [[ $exit_code -eq 0 ]]; then
+        print_success "$SCRIPT_NAME completed successfully"
+    else
+        print_error "$SCRIPT_NAME failed with exit code $exit_code"
+    fi
+    
+    return $exit_code
+}
 
-test "$SCRIPT_DIR" == "$(pwd)" || pushd "$SCRIPT_DIR"
+trap cleanup EXIT
 
-log_info "Copying bash files to $BASH_CFG_DEST"
-cp -r "$SCRIPT_DIR/bash" "$BASH_CFG_DEST" || handle_error "Failed to copy bash files"
+# ----------------------------------------------------------------------------
+# Main Execution
+# ----------------------------------------------------------------------------
+main() {
+    print_info "Starting bash configuration setup..."
+    
+    # Setup error handling
+    set -euo pipefail
+    
+    # Detect project root
+    detect_project_root
+    
+    # Setup logging
+    setup_logging
+    
+    # Parse command line arguments
+    local install_deps=false
+    
+    while [[ $# -gt 0 ]]; do
+        case $1 in
+            -d|--install-deps)
+                install_deps=true
+                shift
+                ;;
+            -h|--help)
+                echo "Usage: $SCRIPT_NAME [OPTIONS]"
+                echo "Options:"
+                echo "  -d, --install-deps    Install dependencies (Starship)"
+                echo "  -h, --help           Show this help message"
+                exit 0
+                ;;
+            *)
+                print_error "Unknown option: $1"
+                exit 1
+                ;;
+        esac
+    done
+    
+    # Install dependencies if requested
+    if [[ "$install_deps" == true ]]; then
+        install_starship
+    fi
+    
+    # Backup existing configurations
+    backup_existing_configurations
+    
+    # Create directories
+    create_config_directories
+    
+    # Copy configuration files
+    copy_configuration_files
+    
+    # Create symbolic links
+    create_symbolic_links
+    
+    print_success "Bash configuration setup completed!"
+    print_info "Backup location: $BACKUP_DIR"
+    
+    if [[ "$install_deps" == true ]]; then
+        print_info "To enable Starship prompt, restart your terminal or run:"
+        echo "  source ~/.bashrc"
+    fi
+}
 
-# Create Symbolic links
-for i in "${BASH_FILES[@]}";do
-    _target="$BASH_CFG_DEST/bash/$i"
-    log_info "Creating Symbolic link..."
-    log_info "Target: '$_target'"
-    log_info "Link Name: '$HOME/$i'"
-    ln -sf "$_target" "$HOME/$i"
-done
-
+# Execute main function
+main "$@"

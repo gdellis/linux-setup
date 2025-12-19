@@ -122,6 +122,15 @@ log_info "Creating new installer script '$NEW_SCRIPT'"
 if cp "$TEMPLATE" "$NEW_SCRIPT"; then
     chmod +x "$NEW_SCRIPT"  # Make it executable
     log_success "Created '$NEW_SCRIPT'"
+    
+    # Show usage example
+    echo ""
+    echo "To run this script locally:"
+    echo "  ./$NEW_SCRIPT"
+    echo ""
+    echo "To run this script remotely:"
+    echo "  bash <(curl -fsSL https://raw.githubusercontent.com/yourusername/linux-setup/main/installers/$NEW_SCRIPT)"
+    echo ""
     exit 0
 else
     log_error "Failed to create '$NEW_SCRIPT'"

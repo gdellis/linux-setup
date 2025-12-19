@@ -54,7 +54,17 @@ The menu will:
 # etc.
 ```
 
-See [docs/TUI_GUIDE.md](docs/TUI_GUIDE.md) and [docs/DEPENDENCIES.md](docs/DEPENDENCIES.md) for details.
+**New!** Run installers remotely without cloning the repository:
+
+```bash
+# Run any installer directly from GitHub
+bash <(curl -fsSL https://raw.githubusercontent.com/gdellis/linux-setup/main/bootstrap.sh) setup_vscode.sh
+
+# Or run specific installers directly
+bash <(curl -fsSL https://raw.githubusercontent.com/gdellis/linux-setup/main/installers/setup_neovim.sh)
+```
+
+See [docs/TUI_GUIDE.md](docs/TUI_GUIDE.md), [docs/DEPENDENCIES.md](docs/DEPENDENCIES.md), and [docs/REMOTE_EXECUTION.md](docs/REMOTE_EXECUTION.md) for details.
 
 ## Features
 
@@ -71,6 +81,12 @@ See [docs/TUI_GUIDE.md](docs/TUI_GUIDE.md) and [docs/DEPENDENCIES.md](docs/DEPEN
   - Integrated dependency checking
   - Easy navigation and installer execution
   - See [docs/TUI_GUIDE.md](docs/TUI_GUIDE.md) for full documentation
+
+- **Remote Execution Capability** ⭐ NEW!
+  - Run any installer script directly from GitHub without cloning
+  - Bootstrap script for easy access to all installers
+  - Automatic library sourcing from remote repository
+  - See [docs/REMOTE_EXECUTION.md](docs/REMOTE_EXECUTION.md) for full documentation
 
 - **Enhanced Bash Environment**:
   - Custom `.bashrc` configuration with Starship prompt

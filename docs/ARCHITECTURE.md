@@ -1,13 +1,14 @@
 # Linux Setup Architecture
 
 ## Project Overview
-- **What this project does**: A comprehensive, professional Linux setup automation system with interactive TUI menu, automatic dependency management, and modular installer scripts for development tools and applications
+- **What this project does**: A comprehensive, professional Linux setup automation system with interactive TUI menu, automatic dependency management, and modular installer scripts for development tools and applications. Now supports remote execution of installers directly from GitHub.
 - **Main purpose and goals**:
   - Provide zero-friction setup experience with automatic dependency resolution
   - Offer beautiful interactive TUI for easy installer selection and execution
   - Automate installation of development tools, AI frameworks, and desktop applications
   - Maintain consistent, professional code quality with shared libraries and automated testing
   - Enable both interactive and automated (CI/CD) deployment scenarios
+  - Support remote execution of installers directly from GitHub
 - **Key technologies used**:
   - Bash scripting with strict mode (`set -euo pipefail`)
   - Python and Gum TUI framework for beautiful console interfaces
@@ -31,10 +32,12 @@
     - Security: `setup_1password.sh`
     - System: `setup_amdgpu.sh`
     - Desktop apps: `setup_orcaslicer.sh`, `setup_protonmail.sh`, `setup_protonvpn.sh`, `setup_syncthing.sh`
+    - **Remote Execution**: All installer scripts can be run directly from GitHub
   - **System Tools**:
     - `check_dependencies.sh`: Standalone dependency checker/installer
     - `new_installer.sh`: Template-based installer generator (Linux only)
     - `demo_tui.sh`: Interactive TUI demonstration
+    - `bootstrap.sh`: Bootstrap script for remote installer execution
   - **Testing & CI/CD**:
     - `tests/`: Bats test suite for core libraries
     - `.github/workflows/shellcheck.yml`: Automated code quality checks
