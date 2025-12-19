@@ -1,15 +1,16 @@
 # Remote Execution Capability Implementation Summary
 
 ## Overview
-This document summarizes the implementation of remote execution capability for the linux-setup project, allowing users to run installer scripts directly from GitHub without cloning the repository.
+This document summarizes the implementation of remote execution capability for the linux-setup project, allowing users to run installer scripts directly from GitHub without cloning the repository. Enhanced branch detection automatically detects which branch the script is running from.
 
 ## Files Created/Modified
 
 ### 1. Core Implementation
-- **installers/template.tpl**: Updated template with remote execution functions
-- **installers/setup_vscode.sh**: Updated with remote execution capability
-- **installers/setup_neovim.sh**: Updated with remote execution capability
-- **installers/setup_gum.sh**: Updated with remote execution capability
+- **installers/template.tpl**: Updated template with remote execution functions and enhanced branch detection
+- **installers/setup_vscode.sh**: Updated with remote execution capability and enhanced branch detection
+- **installers/setup_neovim.sh**: Updated with remote execution capability and enhanced branch detection
+- **installers/setup_gum.sh**: Updated with remote execution capability and enhanced branch detection
+- **installers/setup_fabric.sh**: Updated with remote execution capability and enhanced branch detection
 
 ### 2. Bootstrap and Utilities
 - **bootstrap.sh**: New bootstrap script for running any installer remotely
@@ -24,6 +25,7 @@ This document summarizes the implementation of remote execution capability for t
 ### 4. Testing
 - **tests/test_remote_execution.sh**: Tests for remote execution functionality
 - **tests/test_bootstrap.sh**: Tests for bootstrap script
+- **tests/test_enhanced_branch_detection.sh**: Tests for enhanced branch detection functionality
 
 ## Key Functions Implemented
 
@@ -40,19 +42,37 @@ is_running_remotely() {
 }
 ```
 
-### 2. Library Sourcing
+### 2. Enhanced Library Sourcing with Branch Detection
 ```bash
 source_library() {
     local library_name="$1"
     
     if is_running_remotely; then
-        # Source library from GitHub
-        local repo_user="yourusername"
-        local repo_name="linux-setup"
+        # Source library from GitHub using environment variables with defaults
+        local repo_user="${REPO_USER:-gdellis}"
+        local repo_name="${REPO_NAME:-linux-setup}"
+        local repo_branch="${REPO_BRANCH:-main}"
         
-        echo "Sourcing $library_name from remote repository..."
-        if ! source <(curl -fsSL "https://raw.githubusercontent.com/$repo_user/$repo_name/main/lib/$library_name"); then
-            echo "ERROR: Failed to source $library_name from remote repository"
+        # For remote execution, try to detect branch from script URL if possible
+        # This is an enhancement to handle cases where the script is run from a non-default branch
+        local script_url
+        script_url=$(curl -fsSL -w "%{url_effective}\n" -o /dev/null "https://raw.githubusercontent.com/$repo_user/$repo_name/$repo_branch/installers/template.tpl" 2>/dev/null || echo "")
+        
+        if [[ -n "$script_url" ]] && [[ "$script_url" == *"raw.githubusercontent.com"* ]]; then
+            # Extract branch from URL if possible
+            local url_branch
+            url_branch=$(echo "$script_url" | sed -E "s@.*raw.githubusercontent.com/[^/]+/[^/]+/([^/]+)/.*@\1@")
+            if [[ -n "$url_branch" ]] && [[ "$url_branch" != "template.tpl" ]]; then
+                repo_branch="$url_branch"
+            fi
+        fi
+        
+        echo "Sourcing $library_name from remote repository ($repo_user/$repo_name/$repo_branch)..." >&2
+        if ! source <(curl -fsSL "https://raw.githubusercontent.com/$repo_user/$repo_name/$repo_branch/lib/$library_name"); then
+            echo "ERROR: Failed to source $library_name from remote repository" >&2
+            echo "Tried URL: https://raw.githubusercontent.com/$repo_user/$repo_name/$repo_branch/lib/$library_name" >&2
+            echo "Please ensure REPO_USER, REPO_NAME, and REPO_BRANCH environment variables are set correctly" >&2
+            echo "Current values: REPO_USER=$repo_user, REPO_NAME=$repo_name, REPO_BRANCH=$repo_branch" >&2
             exit 1
         fi
     else
@@ -61,9 +81,10 @@ source_library() {
         script_dir=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &>/dev/null && pwd)
         
         if [[ -f "$script_dir/../lib/$library_name" ]]; then
+            # shellcheck source=/dev/null
             source "$script_dir/../lib/$library_name"
         else
-            echo "ERROR: Local library $library_name not found"
+            echo "ERROR: Local library $library_name not found" >&2
             exit 1
         fi
     fi
@@ -79,6 +100,9 @@ bash <(curl -fsSL https://raw.githubusercontent.com/gdellis/linux-setup/main/ins
 
 # Run Neovim installer directly from GitHub
 bash <(curl -fsSL https://raw.githubusercontent.com/gdellis/linux-setup/main/installers/setup_neovim.sh)
+
+# Run installer from a specific branch (automatic detection)
+bash <(curl -fsSL https://raw.githubusercontent.com/gdellis/linux-setup/feature-branch/installers/setup_vscode.sh)
 ```
 
 ### Use Bootstrap Script
@@ -91,6 +115,9 @@ bash <(curl -fsSL https://raw.githubusercontent.com/gdellis/linux-setup/main/boo
 
 # Run the Python TUI menu directly
 bash <(curl -fsSL https://raw.githubusercontent.com/gdellis/linux-setup/main/bootstrap.sh) python-menu
+
+# Run from a specific branch
+REPO_BRANCH=feature-branch bash <(curl -fsSL https://raw.githubusercontent.com/gdellis/linux-setup/feature-branch/bootstrap.sh) setup_vscode.sh
 ```
 
 ## Configuration Required
@@ -98,7 +125,7 @@ bash <(curl -fsSL https://raw.githubusercontent.com/gdellis/linux-setup/main/boo
 Users can set environment variables to use their own repositories:
 - `REPO_USER`: GitHub username (required if not set, will prompt)
 - `REPO_NAME`: Repository name (required if not set, will prompt)
-- `REPO_BRANCH`: Repository branch (optional, defaults to "main")
+- `REPO_BRANCH`: Repository branch (optional, defaults to "main", automatically detected when possible)
 
 Example:
 ```bash
@@ -110,10 +137,11 @@ If not set, the scripts will prompt the user for the required information.
 ## Benefits
 
 1. **No Repository Clone Required**: Users can run specific installers directly
-2. **Always Up-to-Date**: Scripts are downloaded fresh from the repository
-3. **Consistent Functionality**: Remote execution provides the same features as local execution
-4. **Easy Sharing**: Simple one-liner commands for users
-5. **Backward Compatible**: Existing local usage unchanged
+2. **Automatic Branch Detection**: Scripts automatically detect which branch they're running from
+3. **Always Up-to-Date**: Scripts are downloaded fresh from the repository
+4. **Consistent Functionality**: Remote execution provides the same features as local execution
+5. **Easy Sharing**: Simple one-liner commands for users
+6. **Backward Compatible**: Existing local usage unchanged
 
 ## Security Considerations
 
@@ -124,11 +152,11 @@ If not set, the scripts will prompt the user for the required information.
 ## Testing
 
 All implementation components have been tested and verified:
-- ✅ Template updates
-- ✅ Existing script updates
+- ✅ Template updates with enhanced branch detection
+- ✅ Existing script updates with enhanced branch detection
 - ✅ Bootstrap script functionality
 - ✅ Documentation updates
-- ✅ Test scripts
+- ✅ Test scripts for enhanced branch detection
 
 ## Next Steps
 

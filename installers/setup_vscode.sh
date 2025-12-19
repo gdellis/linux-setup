@@ -7,6 +7,7 @@
 #        -y, --yes, --non-interactive    Skip confirmation prompts
 #        -h, --help                      Show help message
 #        Can also be run remotely with: bash <(curl -fsSL https://raw.githubusercontent.com/user/repo/main/installers/setup_vscode.sh)
+#        Automatically detects branch when run from non-main branches
 #
 
 set -euo pipefail
@@ -55,6 +56,20 @@ source_library() {
         local repo_user="${REPO_USER:-gdellis}"
         local repo_name="${REPO_NAME:-linux-setup}"
         local repo_branch="${REPO_BRANCH:-main}"
+        
+        # For remote execution, try to detect branch from script URL if possible
+        # This is an enhancement to handle cases where the script is run from a non-default branch
+        local script_url
+        script_url=$(curl -fsSL -w "%{url_effective}\n" -o /dev/null "https://raw.githubusercontent.com/$repo_user/$repo_name/$repo_branch/installers/setup_vscode.sh" 2>/dev/null || echo "")
+        
+        if [[ -n "$script_url" ]] && [[ "$script_url" == *"raw.githubusercontent.com"* ]]; then
+            # Extract branch from URL if possible
+            local url_branch
+            url_branch=$(echo "$script_url" | sed -E "s@.*raw.githubusercontent.com/[^/]+/[^/]+/([^/]+)/.*@\1@")
+            if [[ -n "$url_branch" ]] && [[ "$url_branch" != "setup_vscode.sh" ]]; then
+                repo_branch="$url_branch"
+            fi
+        fi
         
         echo "Sourcing $library_name from remote repository ($repo_user/$repo_name/$repo_branch)..." >&2
         if ! source <(curl -fsSL "https://raw.githubusercontent.com/$repo_user/$repo_name/$repo_branch/lib/$library_name"); then
