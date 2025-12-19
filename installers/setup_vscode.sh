@@ -51,13 +51,17 @@ source_library() {
     local library_name="$1"
     
     if is_running_remotely; then
-        # Source library from GitHub
-        local repo_user="yourusername"  # Replace with actual username
-        local repo_name="linux-setup"   # Replace with actual repo name
+        # Source library from GitHub using environment variables with defaults
+        local repo_user="${REPO_USER:-gdellis}"
+        local repo_name="${REPO_NAME:-linux-setup}"
+        local repo_branch="${REPO_BRANCH:-main}"
         
-        echo "Sourcing $library_name from remote repository..."
-        if ! source <(curl -fsSL "https://raw.githubusercontent.com/$repo_user/$repo_name/main/lib/$library_name"); then
-            echo "ERROR: Failed to source $library_name from remote repository"
+        echo "Sourcing $library_name from remote repository ($repo_user/$repo_name/$repo_branch)..." >&2
+        if ! source <(curl -fsSL "https://raw.githubusercontent.com/$repo_user/$repo_name/$repo_branch/lib/$library_name"); then
+            echo "ERROR: Failed to source $library_name from remote repository" >&2
+            echo "Tried URL: https://raw.githubusercontent.com/$repo_user/$repo_name/$repo_branch/lib/$library_name" >&2
+            echo "Please ensure REPO_USER, REPO_NAME, and REPO_BRANCH environment variables are set correctly" >&2
+            echo "Current values: REPO_USER=$repo_user, REPO_NAME=$repo_name, REPO_BRANCH=$repo_branch" >&2
             exit 1
         fi
     else

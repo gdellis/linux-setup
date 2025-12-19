@@ -24,37 +24,17 @@ source_library() {
     local library_name="$1"
     
     if is_running_remotely; then
-        # Source library from GitHub using environment variables or prompt user
-        local repo_user="${REPO_USER:-}"
-        local repo_name="${REPO_NAME:-}"
+        # Source library from GitHub using environment variables with defaults
+        local repo_user="${REPO_USER:-gdellis}"
+        local repo_name="${REPO_NAME:-linux-setup}"
         local repo_branch="${REPO_BRANCH:-main}"
         
-        # Prompt user if variables are not set
-        if [[ -z "$repo_user" ]]; then
-            echo "Repository user not set. Please enter the GitHub username:" >&2
-            read -r repo_user
-            if [[ -z "$repo_user" ]]; then
-                echo "ERROR: Repository user is required" >&2
-                exit 1
-            fi
-        fi
-        
-        if [[ -z "$repo_name" ]]; then
-            echo "Repository name not set. Please enter the repository name:" >&2
-            read -r repo_name
-            if [[ -z "$repo_name" ]]; then
-                echo "ERROR: Repository name is required" >&2
-                exit 1
-            fi
-        fi
-        
-        echo "Sourcing $library_name from remote repository ($repo_user/$repo_name)..." >&2
+        echo "Sourcing $library_name from remote repository ($repo_user/$repo_name/$repo_branch)..." >&2
         if ! source <(curl -fsSL "https://raw.githubusercontent.com/$repo_user/$repo_name/$repo_branch/lib/$library_name"); then
             echo "ERROR: Failed to source $library_name from remote repository" >&2
-            echo "Please ensure the repository information is correct:" >&2
-            echo "  REPO_USER=$repo_user" >&2
-            echo "  REPO_NAME=$repo_name" >&2
-            echo "  REPO_BRANCH=$repo_branch" >&2
+            echo "Tried URL: https://raw.githubusercontent.com/$repo_user/$repo_name/$repo_branch/lib/$library_name" >&2
+            echo "Please ensure REPO_USER, REPO_NAME, and REPO_BRANCH environment variables are set correctly" >&2
+            echo "Current values: REPO_USER=$repo_user, REPO_NAME=$repo_name, REPO_BRANCH=$repo_branch" >&2
             exit 1
         fi
     else

@@ -12,8 +12,8 @@
 set -euo pipefail
 
 # Configuration - Use environment variables or prompt user
-REPO_USER="${REPO_USER:-}"
-REPO_NAME="${REPO_NAME:-}"
+REPO_USER="${REPO_USER:-gdellis}"
+REPO_NAME="${REPO_NAME:-linux-setup}"
 REPO_BRANCH="${REPO_BRANCH:-main}"
 
 # Prompt user if variables are not set
