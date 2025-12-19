@@ -10,6 +10,9 @@ bash <(curl -fsSL https://raw.githubusercontent.com/gdellis/linux-setup/main/boo
 
 # Run the Python TUI menu directly
 bash <(curl -fsSL https://raw.githubusercontent.com/gdellis/linux-setup/main/bootstrap.sh) python-menu
+
+# Run the Python TUI menu with custom repository
+REPO_USER=myuser REPO_NAME=myrepo bash <(curl -fsSL https://raw.githubusercontent.com/gdellis/linux-setup/main/bootstrap.sh) python-menu
 ```
 
 ## How It Works
@@ -19,6 +22,8 @@ Each installer script can detect whether it's running locally or remotely. When 
 1. The script detects it's running from a temporary location
 2. It sources the required library files directly from the GitHub repository
 3. It executes the installation logic as normal
+
+The Python menu works similarly but can also discover and run installers from remote repositories.
 
 ## Usage Examples
 

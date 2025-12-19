@@ -92,6 +92,7 @@ See [docs/TUI_GUIDE.md](docs/TUI_GUIDE.md), [docs/DEPENDENCIES.md](docs/DEPENDEN
   - Run any installer script directly from GitHub without cloning
   - Bootstrap script for easy access to all installers
   - Automatic library sourcing from remote repository
+  - Both bash and Python TUI menus support remote execution
   - See [docs/REMOTE_EXECUTION.md](docs/REMOTE_EXECUTION.md) for full documentation
 
 - **Enhanced Bash Environment**:
