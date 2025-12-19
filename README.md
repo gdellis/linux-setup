@@ -62,6 +62,12 @@ bash <(curl -fsSL https://raw.githubusercontent.com/gdellis/linux-setup/main/boo
 
 # Or run specific installers directly
 bash <(curl -fsSL https://raw.githubusercontent.com/gdellis/linux-setup/main/installers/setup_neovim.sh)
+
+# Run the bash TUI menu directly
+bash <(curl -fsSL https://raw.githubusercontent.com/gdellis/linux-setup/main/bootstrap.sh) menu
+
+# Run the Python TUI menu directly
+bash <(curl -fsSL https://raw.githubusercontent.com/gdellis/linux-setup/main/bootstrap.sh) python-menu
 ```
 
 See [docs/TUI_GUIDE.md](docs/TUI_GUIDE.md), [docs/DEPENDENCIES.md](docs/DEPENDENCIES.md), and [docs/REMOTE_EXECUTION.md](docs/REMOTE_EXECUTION.md) for details.

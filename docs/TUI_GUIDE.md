@@ -13,10 +13,16 @@ Or run installers directly from GitHub without cloning:
 
 ```bash
 # Run any installer directly from GitHub
-bash <(curl -fsSL https://raw.githubusercontent.com/yourusername/linux-setup/main/bootstrap.sh) setup_vscode.sh
+bash <(curl -fsSL https://raw.githubusercontent.com/gdellis/linux-setup/main/bootstrap.sh) setup_vscode.sh
 
 # Or run specific installers directly
-bash <(curl -fsSL https://raw.githubusercontent.com/yourusername/linux-setup/main/installers/setup_neovim.sh)
+bash <(curl -fsSL https://raw.githubusercontent.com/gdellis/linux-setup/main/installers/setup_neovim.sh)
+
+# Run the bash TUI menu directly
+bash <(curl -fsSL https://raw.githubusercontent.com/gdellis/linux-setup/main/bootstrap.sh) menu
+
+# Run the Python TUI menu directly
+bash <(curl -fsSL https://raw.githubusercontent.com/gdellis/linux-setup/main/bootstrap.sh) python-menu
 ```
 
 The menu will automatically detect the best available TUI backend and provide an interactive interface for running installer scripts.

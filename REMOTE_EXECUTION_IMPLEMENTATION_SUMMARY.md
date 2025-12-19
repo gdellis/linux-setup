@@ -75,23 +75,37 @@ source_library() {
 ### Run Specific Installers Remotely
 ```bash
 # Run VS Code installer directly from GitHub
-bash <(curl -fsSL https://raw.githubusercontent.com/user/repo/main/installers/setup_vscode.sh)
+bash <(curl -fsSL https://raw.githubusercontent.com/gdellis/linux-setup/main/installers/setup_vscode.sh)
 
 # Run Neovim installer directly from GitHub
-bash <(curl -fsSL https://raw.githubusercontent.com/user/repo/main/installers/setup_neovim.sh)
+bash <(curl -fsSL https://raw.githubusercontent.com/gdellis/linux-setup/main/installers/setup_neovim.sh)
 ```
 
 ### Use Bootstrap Script
 ```bash
 # Run any installer using the bootstrap script
-bash <(curl -fsSL https://raw.githubusercontent.com/user/repo/main/bootstrap.sh) setup_vscode.sh
+bash <(curl -fsSL https://raw.githubusercontent.com/gdellis/linux-setup/main/bootstrap.sh) setup_vscode.sh
+
+# Run the bash TUI menu directly
+bash <(curl -fsSL https://raw.githubusercontent.com/gdellis/linux-setup/main/bootstrap.sh) menu
+
+# Run the Python TUI menu directly
+bash <(curl -fsSL https://raw.githubusercontent.com/gdellis/linux-setup/main/bootstrap.sh) python-menu
 ```
 
 ## Configuration Required
 
-Users must update the following variables in scripts:
-- `repo_user`: GitHub username
-- `repo_name`: Repository name
+Users can set environment variables to use their own repositories:
+- `REPO_USER`: GitHub username (required if not set, will prompt)
+- `REPO_NAME`: Repository name (required if not set, will prompt)
+- `REPO_BRANCH`: Repository branch (optional, defaults to "main")
+
+Example:
+```bash
+REPO_USER=myuser REPO_NAME=myrepo bash <(curl -fsSL https://raw.githubusercontent.com/gdellis/linux-setup/main/bootstrap.sh) setup_vscode.sh
+```
+
+If not set, the scripts will prompt the user for the required information.
 
 ## Benefits
 

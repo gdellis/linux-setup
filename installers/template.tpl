@@ -24,13 +24,37 @@ source_library() {
     local library_name="$1"
     
     if is_running_remotely; then
-        # Source library from GitHub
-        local repo_user="gdellis"  # Replace with actual username
-        local repo_name="linux-setup"   # Replace with actual repo name
+        # Source library from GitHub using environment variables or prompt user
+        local repo_user="${REPO_USER:-}"
+        local repo_name="${REPO_NAME:-}"
+        local repo_branch="${REPO_BRANCH:-main}"
         
-        echo "Sourcing $library_name from remote repository..."
-        if ! source <(curl -fsSL "https://raw.githubusercontent.com/$repo_user/$repo_name/main/lib/$library_name"); then
-            echo "ERROR: Failed to source $library_name from remote repository"
+        # Prompt user if variables are not set
+        if [[ -z "$repo_user" ]]; then
+            echo "Repository user not set. Please enter the GitHub username:" >&2
+            read -r repo_user
+            if [[ -z "$repo_user" ]]; then
+                echo "ERROR: Repository user is required" >&2
+                exit 1
+            fi
+        fi
+        
+        if [[ -z "$repo_name" ]]; then
+            echo "Repository name not set. Please enter the repository name:" >&2
+            read -r repo_name
+            if [[ -z "$repo_name" ]]; then
+                echo "ERROR: Repository name is required" >&2
+                exit 1
+            fi
+        fi
+        
+        echo "Sourcing $library_name from remote repository ($repo_user/$repo_name)..." >&2
+        if ! source <(curl -fsSL "https://raw.githubusercontent.com/$repo_user/$repo_name/$repo_branch/lib/$library_name"); then
+            echo "ERROR: Failed to source $library_name from remote repository" >&2
+            echo "Please ensure the repository information is correct:" >&2
+            echo "  REPO_USER=$repo_user" >&2
+            echo "  REPO_NAME=$repo_name" >&2
+            echo "  REPO_BRANCH=$repo_branch" >&2
             exit 1
         fi
     else
@@ -42,7 +66,7 @@ source_library() {
             # shellcheck source=/dev/null
             source "$script_dir/../lib/$library_name"
         else
-            echo "ERROR: Local library $library_name not found"
+            echo "ERROR: Local library $library_name not found" >&2
             exit 1
         fi
     fi

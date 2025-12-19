@@ -2,6 +2,16 @@
 
 The installer scripts in this repository can be run directly from the internet using curl, without needing to download the entire repository first.
 
+You can also run the TUI menus directly:
+
+```bash
+# Run the bash TUI menu directly
+bash <(curl -fsSL https://raw.githubusercontent.com/gdellis/linux-setup/main/bootstrap.sh) menu
+
+# Run the Python TUI menu directly
+bash <(curl -fsSL https://raw.githubusercontent.com/gdellis/linux-setup/main/bootstrap.sh) python-menu
+```
+
 ## How It Works
 
 Each installer script can detect whether it's running locally or remotely. When run remotely:
@@ -57,17 +67,23 @@ The template includes:
 
 ## How to Set Up for Your Repository
 
-To make this work with your own repository, you'll need to:
+To make this work with your own repository, you can either:
 
-1. Update the `repo_user` and `repo_name` variables in the template
-2. Ensure your library files are in the `lib/` directory
-3. Make sure your GitHub repository is public (for raw URL access)
+1. Set environment variables before running the scripts:
+   ```bash
+   export REPO_USER="your-github-username"
+   export REPO_NAME="your-repo-name"
+   export REPO_BRANCH="main"  # optional, defaults to main
+   ```
 
-Example updates in the template:
-```bash
-local repo_user="your-github-username"
-local repo_name="your-repo-name"
-```
+2. Or set them inline when running scripts:
+   ```bash
+   REPO_USER=myuser REPO_NAME=myrepo bash <(curl -fsSL https://raw.githubusercontent.com/gdellis/linux-setup/main/bootstrap.sh) setup_vscode.sh
+   ```
+
+3. Or let the scripts prompt you for the repository information (if not set)
+
+This approach makes the scripts much more flexible and eliminates the need to modify the source code for different repositories.
 
 ## Security Considerations
 
