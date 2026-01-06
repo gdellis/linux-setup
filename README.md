@@ -1,5 +1,8 @@
 # Linux Development Environment Setup
 
+> [! Warning]
+> **Disclamer:** This is intended for my own use and still under development
+
 ## Description
 
 This project automates the setup of a comprehensive Linux development environment with customized bash configuration, CLI tools, and AI model management. It streamlines the process of configuring a productive development environment on Linux systems.
