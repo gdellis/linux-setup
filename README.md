@@ -1,6 +1,6 @@
 # Linux Development Environment Setup
 
-> [! Warning]
+> [!Warning]
 > **Disclamer:** This is intended for my own use and still under development
 
 ## Description
