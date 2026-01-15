@@ -5,6 +5,7 @@
 This project automates the setup of a comprehensive Linux development environment with customized bash configuration, CLI tools, and AI model management. It streamlines the process of configuring a productive development environment on Linux systems.
 
 The setup includes:
+
 - Customized bash environment with aliases and prompt customization
 - Automated installation and configuration of development tools
 - AI model management for local and cloud inference with Ollama
@@ -34,6 +35,7 @@ cd linux-setup
 ```
 
 The menu will:
+
 - ✓ Automatically check system dependencies
 - ✓ Offer to install missing tools (curl, wget, nala)
 - ✓ Provide a beautiful TUI for running installers
@@ -148,7 +150,7 @@ Before running the setup scripts, ensure you have:
    ```bash
    # Install and configure Ollama with predefined models
    ./installers/setup_ollama.sh
-   
+
    # Install and configure Fabric AI framework
    ./installers/setup_fabric.sh
    ```
@@ -184,6 +186,7 @@ After installation, your bash environment will be enhanced with:
 The project creates backups of your existing configuration files in the `backups/` directory with timestamps.
 
 Main configuration files:
+
 - `bash/.bashrc`: Enhanced bash configuration with Starship prompt
 - `bash/.bash_aliases`: Custom command aliases
 - Custom configurations for Fabric, Ollama, and other tools are placed in their respective config directories
