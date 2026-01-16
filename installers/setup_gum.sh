@@ -2,8 +2,10 @@
 #
 # setup_gum.sh - Gum TUI Tool Installation Script
 # Description: Installs Gum, a tool for creating beautiful shell scripts and TUIs
+# Category: System
 # Usage: ./setup_gum.sh
 #        Can also be run remotely with: bash <(curl -fsSL https://raw.githubusercontent.com/user/repo/main/installers/setup_gum.sh)
+#        Automatically detects branch when run from non-main branches
 #
 
 set -euo pipefail
@@ -27,25 +29,31 @@ source_library() {
     local library_name="$1"
     
     if is_running_remotely; then
-        # Source library from GitHub
-        local repo_user="yourusername"  # Replace with actual username
-        local repo_name="linux-setup"   # Replace with actual repo name
+        # Source library from GitHub using environment variables with defaults
+        local repo_user="${REPO_USER:-gdellis}"
+        local repo_name="${REPO_NAME:-linux-setup}"
+        local repo_branch="${REPO_BRANCH:-main}"
         
-        echo "Sourcing $library_name from remote repository..."
-        if ! source <(curl -fsSL "https://raw.githubusercontent.com/$repo_user/$repo_name/main/lib/$library_name"); then
-            echo "ERROR: Failed to source $library_name from remote repository"
-            exit 1
+        # For remote execution, try to detect branch from script URL if possible
+        # This is an enhancement to handle cases where the script is run from a non-default branch
+        local script_url
+        script_url=$(curl -fsSL -w "%{url_effective}\n" -o /dev/null "https://raw.githubusercontent.com/$repo_user/$repo_name/$repo_branch/installers/setup_gum.sh" 2>/dev/null || echo "")
+        
+        if [[ -n "$script_url" ]] && [[ "$script_url" == *"raw.githubusercontent.com"* ]]; then
+            # Extract branch from URL if possible
+            local url_branch
+            url_branch=$(echo "$script_url" | sed -E "s@.*raw.githubusercontent.com/[^/]+/[^/]+/([^/]+)/.*@\1@")
+            if [[ -n "$url_branch" ]] && [[ "$url_branch" != "setup_gum.sh" ]]; then
+                repo_branch="$url_branch"
+            fi
         fi
-    else
-        # Source library locally
-        local script_dir
-        script_dir=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &>/dev/null && pwd)
         
-        if [[ -f "$script_dir/../lib/$library_name" ]]; then
-            # shellcheck source=/dev/null
-            source "$script_dir/../lib/$library_name"
-        else
-            echo "ERROR: Local library $library_name not found"
+        echo "Sourcing $library_name from remote repository ($repo_user/$repo_name/$repo_branch)..." >&2
+        if ! source <(curl -fsSL "https://raw.githubusercontent.com/$repo_user/$repo_name/$repo_branch/lib/$library_name"); then
+            echo "ERROR: Failed to source $library_name from remote repository" >&2
+            echo "Tried URL: https://raw.githubusercontent.com/$repo_user/$repo_name/$repo_branch/lib/$library_name" >&2
+            echo "Please ensure REPO_USER, REPO_NAME, and REPO_BRANCH environment variables are set correctly" >&2
+            echo "Current values: REPO_USER=$repo_user, REPO_NAME=$repo_name, REPO_BRANCH=$repo_branch" >&2
             exit 1
         fi
     fi

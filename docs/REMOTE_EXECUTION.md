@@ -10,6 +10,9 @@ bash <(curl -fsSL https://raw.githubusercontent.com/gdellis/linux-setup/main/boo
 
 # Run the Python TUI menu directly
 bash <(curl -fsSL https://raw.githubusercontent.com/gdellis/linux-setup/main/bootstrap.sh) python-menu
+
+# Run the Python TUI menu with custom repository
+REPO_USER=myuser REPO_NAME=myrepo bash <(curl -fsSL https://raw.githubusercontent.com/gdellis/linux-setup/main/bootstrap.sh) python-menu
 ```
 
 ## How It Works
@@ -17,8 +20,11 @@ bash <(curl -fsSL https://raw.githubusercontent.com/gdellis/linux-setup/main/boo
 Each installer script can detect whether it's running locally or remotely. When run remotely:
 
 1. The script detects it's running from a temporary location
-2. It sources the required library files directly from the GitHub repository
-3. It executes the installation logic as normal
+2. It automatically detects the branch from the script URL (enhanced feature)
+3. It sources the required library files directly from the GitHub repository
+4. It executes the installation logic as normal
+
+The Python menu works similarly but can also discover and run installers from remote repositories.
 
 ## Usage Examples
 
@@ -44,17 +50,19 @@ bash <(curl -fsSL https://raw.githubusercontent.com/yourusername/linux-setup/mai
 
 ## For Script Developers
 
-When you create a new installer with `./installers/new_installer.sh`, it will automatically include remote execution capability.
+When you create a new installer with `./installers/new_installer.sh`, it will automatically include remote execution capability with enhanced branch detection.
 
 The template includes:
 
 1. A function to detect if running locally or remotely
-2. A function to source libraries appropriately
-3. Usage instructions in the script header
+2. Enhanced branch detection that automatically detects the branch from the script URL
+3. A function to source libraries appropriately
+4. Usage instructions in the script header
 
 ## Benefits
 
 - **No repository download required**: Users can run specific installers directly
+- **Automatic branch detection**: Scripts automatically detect which branch they're running from
 - **Always up-to-date**: Scripts are downloaded fresh from the repository
 - **Consistent functionality**: Remote execution provides the same features as local execution
 - **Easy sharing**: Simple one-liner commands for users

@@ -66,24 +66,33 @@ fi
 # ------------------------------------------------------------
 
 readonly cloud_models=(
-    "ministral-3:3b-cloud"
-    "ministral-3:8b-cloud"
-    "ministral-3:14b-cloud"
-    "mistral-large-3:675b-cloud"
-    "qwen3-coder:480b-cloud"
     "cogito-2.1:671b-cloud"
+    "deepseek-v3.2:cloud"
+    "devstral-2:123b-cloud"
+    "devstral-small-2:24b-cloud"
+    "gemma3:27b-cloud"
+    "gemma3:12b-cloud"
+    "gemma3:4b-cloud"
+    "glm-4.7:cloud"
+    "gpt-oss:120b-cloud"
+    "gpt-oss:20b-cloud"
     "kimi-k2-thinking:cloud"
     "kimi-k2:1t-cloud"
-    "minimax-m2:cloud"
-    "deepseek-v3.1:671b-cloud"
-    "gpt-oss:120b-cloud"
-    "glm-4.6:cloud"
-    "qwen3-vl:235b-instruct-cloud"
+    "minimax-m2.1:cloud"
+    "ministral-3:14b-cloud"
+    "ministral-3:3b-cloud"
+    "ministral-3:8b-cloud"
+    "mistral-large-3:675b-cloud"
+    "nemotron-3-nano:30b-cloud"
+    "qwen3-coder:480b-cloud"
     "qwen3-vl:235b-cloud"
-    "gpt-oss:20b-cloud"
+    "qwen3-vl:235b-instruct-cloud"
+    "qwen3-next:80b-cloud"
 )
 
 readonly local_models=(
+    "embeddinggemma:latest"
+    "all-minilm:latest"
     "qwen2.5-coder:1.5b"
     "nomic-embed-text:latest"
     "qwen3-embedding:latest"
@@ -132,28 +141,28 @@ is_model_downloaded() {
 install_ollama() {
     log "Installing Ollama..."
     local installer="/tmp/ollama_install.sh"
-    
+
     if ! curl -fsSL https://ollama.com/install.sh -o "$installer"; then
         handle_error "Failed to download Ollama installer"
     fi
-    
+
     if ! sh "$installer" 2>/tmp/ollama_install_error.log; then
         rm "$installer"
         handle_error "Ollama installation failed. Check /tmp/ollama_install_error.log"
     fi
-    
+
     rm "$installer"
     log_success "✓ Ollama installed successfully"
 }
 
 download_model() {
     local model="$1"
-    
+
     if is_model_downloaded "$model"; then
         log_info "⏭️  Skipping '$model' (already downloaded)"
         return 0
     fi
-    
+
     log_info "📥 Downloading '$model'..."
     if ollama pull "$model" >/tmp/ollama_pull.log 2>&1; then
         log_success "✓ Successfully downloaded '$model'"
@@ -167,7 +176,7 @@ download_model_list() {
     local list_name="$1"
     shift
     local models=("$@")
-    
+
     log_info "=== $list_name ==="
     for model in "${models[@]}"; do
         download_model "$model"
@@ -176,10 +185,10 @@ download_model_list() {
 
 main() {
     log_info "Starting Ollama setup..."
-    
+
     # Check basic dependencies (curl, jq)
     check_dependencies
-    
+
     # Check/install Ollama
     if ! command -v ollama &> /dev/null; then
         log_warning "Ollama not found. Installing..."
@@ -195,19 +204,19 @@ main() {
             exit 0
         fi
     fi
-    
+
     # Cache downloaded models
     get_downloaded_models
     trap 'rm -f "/tmp/ollama_cache_$$"' EXIT
-    
+
     # Download all models
     download_model_list "Cloud Models" "${cloud_models[@]}"
     download_model_list "Local Models" "${local_models[@]}"
-    
+
     log_success "===================================="
     log_success "✓ Model download process completed"
     log_success "===================================="
-    
+
     echo
     echo "For cloud models, you must login to your account by running:"
     echo "  ollama signin"

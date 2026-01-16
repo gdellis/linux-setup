@@ -2,8 +2,10 @@
 #
 # py_menu.py - Python-based TUI for Linux Setup with Categories and Multi-Select
 # Description: Enhanced menu system with categories, search, multi-select, and batch installation
+#              Supports both local and remote execution
 # Usage: ./py_menu.py
-#
+#        Can also be run remotely with: 
+#        REPO_USER=user REPO_NAME=repo bash <(curl -fsSL https://raw.githubusercontent.com/user/repo/main/bootstrap.sh) python-menu
 
 import os
 import sys
@@ -12,13 +14,32 @@ import curses
 from curses import wrapper
 from pathlib import Path
 import re
+import urllib.request
+import urllib.error
+import json
+import tempfile
 
-class InstallerMenu:
+class RemoteAwareInstallerMenu:
     def __init__(self):
-        self.script_dir = Path(__file__).parent
-        self.installers_dir = self.script_dir / "installers"
-        self.installers = self.discover_installers()
-        self.categories = self.organize_by_category()
+        # Check if running remotely (in a temporary directory)
+        self.script_path = Path(__file__)
+        self.is_remote = str(self.script_path).startswith("/tmp/") or str(self.script_path).startswith("/var/tmp/")
+        
+        # Repository configuration from environment variables
+        self.repo_user = os.environ.get("REPO_USER", "gdellis")
+        self.repo_name = os.environ.get("REPO_NAME", "linux-setup")
+        self.repo_branch = os.environ.get("REPO_BRANCH", "main")
+        
+        if self.is_remote:
+            print(f"Running remotely from {self.repo_user}/{self.repo_name} ({self.repo_branch})")
+            self.installers = self.discover_remote_installers()
+            self.categories = self.organize_by_category()
+        else:
+            self.script_dir = self.script_path.parent
+            self.installers_dir = self.script_dir / "installers"
+            self.installers = self.discover_local_installers()
+            self.categories = self.organize_by_category()
+            
         self.current_view = "main"  # "main", "category", "search", or "multiselect"
         self.selected = 0
         self.offset = 0
@@ -29,8 +50,80 @@ class InstallerMenu:
         self.selected_items = set()  # Set of indices for multiselect
         self.multiselect_items = []  # Items available for multiselect
 
-    def discover_installers(self):
-        """Discover all setup_*.sh scripts"""
+    def fetch_remote_content(self, path):
+        """Fetch content from remote repository"""
+        url = f"https://raw.githubusercontent.com/{self.repo_user}/{self.repo_name}/{self.repo_branch}/{path}"
+        try:
+            with urllib.request.urlopen(url) as response:
+                return response.read().decode('utf-8')
+        except urllib.error.URLError as e:
+            print(f"Error fetching {url}: {e}")
+            return None
+
+    def list_remote_directory(self, path):
+        """List files in a remote directory (simplified approach)"""
+        # For GitHub, we can't easily list directory contents via raw URLs
+        # We'll need to know the installer names or use GitHub API
+        # For now, let's try a few common installer names
+        common_installers = [
+            "setup_vscode.sh", "setup_neovim.sh", "setup_gum.sh", 
+            "setup_nala.sh", "setup_fabric.sh", "setup_ollama.sh",
+            "setup_1password.sh", "setup_protonvpn.sh", "setup_syncthing.sh",
+            "setup_orcaslicer.sh", "setup_amdgpu.sh", "setup_protonmail.sh"
+        ]
+        return common_installers
+
+    def discover_remote_installers(self):
+        """Discover installers from remote repository"""
+        installers = []
+        
+        # Try to get list of installers from remote directory
+        # This is a simplified approach - in practice, you might want to:
+        # 1. Use GitHub API to list files
+        # 2. Have a manifest file in the repo
+        # 3. Try a predefined list of common installers
+        
+        installer_names = self.list_remote_directory("installers/")
+        
+        for installer_name in installer_names:
+            if not installer_name.startswith("setup_") or not installer_name.endswith(".sh"):
+                continue
+                
+            if installer_name in ["setup_gum.sh", "setup_new_installer.sh"]:
+                continue
+                
+            # Fetch the installer content to extract metadata
+            installer_path = f"installers/{installer_name}"
+            content = self.fetch_remote_content(installer_path)
+            
+            if content is None:
+                continue
+                
+            # Extract metadata from file header
+            description = "No description"
+            category = "Utilities"  # Default category
+            
+            for line in content.split('\n'):
+                if line.startswith("# Description:"):
+                    description = line.replace("# Description:", "").strip()
+                elif line.startswith("# Category:"):
+                    category = line.replace("# Category:", "").strip()
+                elif line.strip() and not line.startswith("#"):
+                    break
+                    
+            display_name = installer_name.replace("setup_", "").replace(".sh", "")
+            installers.append({
+                'name': display_name,
+                'description': description,
+                'category': category,
+                'path': installer_path,
+                'is_remote': True
+            })
+            
+        return installers
+
+    def discover_local_installers(self):
+        """Discover all setup_*.sh scripts locally"""
         installers = []
         
         if not self.installers_dir.exists():
@@ -64,7 +157,8 @@ class InstallerMenu:
                 'name': display_name,
                 'description': description,
                 'category': category,
-                'path': str(script_path)
+                'path': str(script_path),
+                'is_remote': False
             })
             
         return installers
@@ -180,6 +274,14 @@ class InstallerMenu:
         stdscr.addstr(0, (width - len(title)) // 2, title, curses.A_BOLD)
         stdscr.addstr(1, 0, "=" * width)
         
+        # Remote execution indicator
+        if self.is_remote:
+            stdscr.addstr(2, 0, f"REMOTE MODE: {self.repo_user}/{self.repo_name}", curses.A_BOLD)
+            stdscr.addstr(3, 0, "-" * width)
+            offset_row = 4
+        else:
+            offset_row = 2
+            
         # Breadcrumb navigation
         if self.current_view != "main":
             breadcrumb = "Main"
@@ -191,11 +293,11 @@ class InstallerMenu:
                 if self.current_category:
                     breadcrumb += f" > {self.current_category}"
                 breadcrumb += " > Multi-Select"
-            stdscr.addstr(2, 0, breadcrumb[:width-1])
-            stdscr.addstr(3, 0, "-" * width)
-            search_row = 4
+            stdscr.addstr(offset_row, 0, breadcrumb[:width-1])
+            stdscr.addstr(offset_row + 1, 0, "-" * width)
+            search_row = offset_row + 2
         else:
-            search_row = 2
+            search_row = offset_row
             
         # Search bar
         search_prompt = f"Search: {self.search_term}"
@@ -284,8 +386,76 @@ class InstallerMenu:
             
         stdscr.refresh()
 
-    def run_installer(self, stdscr, installer_path):
-        """Run a single installer"""
+    def run_remote_installer(self, stdscr, installer_path):
+        """Run a remote installer by downloading and executing it"""
+        stdscr.clear()
+        height, width = stdscr.getmaxyx()
+        
+        installer_name = Path(installer_path).name
+        stdscr.addstr(0, 0, f"Running: {installer_name} (Remote)", curses.A_BOLD)
+        stdscr.addstr(1, 0, "Downloading and executing...")
+        stdscr.addstr(2, 0, "Press Ctrl+C to cancel")
+        stdscr.refresh()
+        
+        # End curses mode temporarily
+        curses.endwin()
+        
+        # Download the installer to a temporary file
+        url = f"https://raw.githubusercontent.com/{self.repo_user}/{self.repo_name}/{self.repo_branch}/{installer_path}"
+        print(f"Downloading {url}")
+        
+        try:
+            # Create temporary file
+            with tempfile.NamedTemporaryFile(mode='w', suffix='.sh', delete=False) as tmp_file:
+                tmp_path = tmp_file.name
+                
+            # Download the installer
+            urllib.request.urlretrieve(url, tmp_path)
+            
+            # Make it executable
+            os.chmod(tmp_path, 0o755)
+            
+            # Set environment variables for the remote installer
+            env = os.environ.copy()
+            env["REPO_USER"] = self.repo_user
+            env["REPO_NAME"] = self.repo_name
+            env["REPO_BRANCH"] = self.repo_branch
+            
+            # Run the installer
+            result = subprocess.run(["bash", tmp_path], check=True, env=env)
+            success = True
+            
+            # Clean up
+            os.unlink(tmp_path)
+            
+        except subprocess.CalledProcessError as e:
+            success = False
+            print(f"Installation failed with exit code {e.returncode}")
+        except Exception as e:
+            success = False
+            print(f"Error running installer: {e}")
+        except KeyboardInterrupt:
+            success = False
+            print("Installation cancelled")
+            
+        # Show completion message
+        if success:
+            print("\n✅ Installation completed successfully!")
+        else:
+            print("\n❌ Installation failed or was cancelled.")
+            
+        input("\nPress Enter to return to menu...")
+            
+        # Restart curses mode
+        stdscr = curses.initscr()
+        curses.cbreak()
+        stdscr.keypad(True)
+        curses.noecho()
+        
+        return stdscr
+
+    def run_local_installer(self, stdscr, installer_path):
+        """Run a local installer"""
         stdscr.clear()
         height, width = stdscr.getmaxyx()
         
@@ -325,16 +495,23 @@ class InstallerMenu:
         
         return stdscr
 
-    def run_batch_installers(self, stdscr, installer_paths):
+    def run_installer(self, stdscr, installer):
+        """Run an installer (local or remote)"""
+        if installer.get('is_remote', False):
+            return self.run_remote_installer(stdscr, installer['path'])
+        else:
+            return self.run_local_installer(stdscr, installer['path'])
+
+    def run_batch_installers(self, stdscr, installers):
         """Run multiple installers in batch"""
-        if not installer_paths:
+        if not installers:
             return stdscr
             
         stdscr.clear()
         height, width = stdscr.getmaxyx()
         
         stdscr.addstr(0, 0, "Batch Installation", curses.A_BOLD)
-        stdscr.addstr(1, 0, f"Installing {len(installer_paths)} items...")
+        stdscr.addstr(1, 0, f"Installing {len(installers)} items...")
         stdscr.addstr(2, 0, "Press Ctrl+C to cancel")
         stdscr.refresh()
         
@@ -344,16 +521,50 @@ class InstallerMenu:
         success_count = 0
         failed_count = 0
         
-        for i, installer_path in enumerate(installer_paths):
-            print(f"\n[{i+1}/{len(installer_paths)}] Installing: {Path(installer_path).name}")
+        for i, installer in enumerate(installers):
+            installer_name = Path(installer['path']).name
+            print(f"\n[{i+1}/{len(installers)}] Installing: {installer_name}")
             
             try:
-                result = subprocess.run(["bash", installer_path], check=True)
-                success_count += 1
-                print(f"✅ {Path(installer_path).name} installed successfully!")
+                if installer.get('is_remote', False):
+                    # Download and run remote installer
+                    url = f"https://raw.githubusercontent.com/{self.repo_user}/{self.repo_name}/{self.repo_branch}/{installer['path']}"
+                    
+                    # Create temporary file
+                    with tempfile.NamedTemporaryFile(mode='w', suffix='.sh', delete=False) as tmp_file:
+                        tmp_path = tmp_file.name
+                    
+                    # Download the installer
+                    urllib.request.urlretrieve(url, tmp_path)
+                    
+                    # Make it executable
+                    os.chmod(tmp_path, 0o755)
+                    
+                    # Set environment variables for the remote installer
+                    env = os.environ.copy()
+                    env["REPO_USER"] = self.repo_user
+                    env["REPO_NAME"] = self.repo_name
+                    env["REPO_BRANCH"] = self.repo_branch
+                    
+                    # Run the installer
+                    result = subprocess.run(["bash", tmp_path], check=True, env=env)
+                    success_count += 1
+                    print(f"✅ {installer_name} installed successfully!")
+                    
+                    # Clean up
+                    os.unlink(tmp_path)
+                else:
+                    # Run local installer
+                    result = subprocess.run(["bash", installer['path']], check=True)
+                    success_count += 1
+                    print(f"✅ {installer_name} installed successfully!")
+                    
             except subprocess.CalledProcessError as e:
                 failed_count += 1
-                print(f"❌ {Path(installer_path).name} failed with exit code {e.returncode}")
+                print(f"❌ {installer_name} failed with exit code {e.returncode}")
+            except Exception as e:
+                failed_count += 1
+                print(f"❌ {installer_name} failed with error: {e}")
             except KeyboardInterrupt:
                 print("\n❌ Installation cancelled by user")
                 break
@@ -362,7 +573,7 @@ class InstallerMenu:
         print(f"\n📊 Installation Summary:")
         print(f"   Successful: {success_count}")
         print(f"   Failed: {failed_count}")
-        print(f"   Total: {len(installer_paths)}")
+        print(f"   Total: {len(installers)}")
         
         input("\nPress Enter to return to menu...")
             
@@ -426,14 +637,14 @@ class InstallerMenu:
                         if self.current_view == "multiselect":
                             # In multiselect mode, Enter installs selected items
                             if self.selected_items:
-                                # Get paths of selected items
-                                selected_paths = []
+                                # Get selected items
+                                selected_installers = []
                                 for idx in self.selected_items:
                                     if idx < len(self.multiselect_items):
-                                        selected_paths.append(self.multiselect_items[idx]['path'])
+                                        selected_installers.append(self.multiselect_items[idx])
                                 
-                                if selected_paths:
-                                    stdscr = self.run_batch_installers(stdscr, selected_paths)
+                                if selected_installers:
+                                    stdscr = self.run_batch_installers(stdscr, selected_installers)
                                     # Exit multiselect mode after installation
                                     self.current_view = "main" if self.current_category is None else "category"
                                     self.multiselect_mode = False
@@ -449,9 +660,8 @@ class InstallerMenu:
                             self.offset = 0
                         elif item.get('type') == 'installer' or 'path' in item:
                             # Run installer
-                            installer_path = item.get('path', '')
-                            if installer_path:
-                                stdscr = self.run_installer(stdscr, installer_path)
+                            if 'path' in item:
+                                stdscr = self.run_installer(stdscr, item)
                 elif key == ord(' '):
                     # Spacebar to toggle selection in multiselect mode
                     if self.current_view == "multiselect":
@@ -497,7 +707,18 @@ def main():
     """Main entry point"""
     if len(sys.argv) > 1 and sys.argv[1] == "--help":
         print("Linux Setup Menu - Python TUI with Categories and Multi-Select")
+        print("Supports both local and remote execution")
+        print("")
         print("Usage: ./py_menu.py")
+        print("")
+        print("For remote execution:")
+        print("  REPO_USER=user REPO_NAME=repo bash <(curl -fsSL https://raw.githubusercontent.com/user/repo/main/bootstrap.sh) python-menu")
+        print("")
+        print("Environment Variables:")
+        print("  REPO_USER  - GitHub username (default: gdellis)")
+        print("  REPO_NAME  - Repository name (default: linux-setup)")
+        print("  REPO_BRANCH - Repository branch (default: main)")
+        print("")
         print("Navigation:")
         print("  Arrow keys - Move selection")
         print("  Enter - Select category/run installer")
@@ -510,7 +731,7 @@ def main():
         print("  q - Quit menu")
         return
         
-    menu = InstallerMenu()
+    menu = RemoteAwareInstallerMenu()
     try:
         wrapper(menu.run)
     except Exception as e:
