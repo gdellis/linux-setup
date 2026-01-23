@@ -46,13 +46,13 @@ log()
     echo "$plain_msg" >> "$LOG_FILE"
 }
 
-# shellcheck disable=SC2329
+# shellcheck disable=SC2317,SC2329  # Functions are used by trap and other scripts
 log_info() { log "${GREEN}[INFO]${NC} $*";}
-# shellcheck disable=SC2329
+# shellcheck disable=SC2317,SC2329  # Functions are used by trap and other scripts
 log_error() { log "${RED}[ERROR]${NC} $*";}
-# shellcheck disable=SC2329
+# shellcheck disable=SC2317,SC2329  # Functions are used by trap and other scripts
 log_success() { log "${GREEN}[SUCCESS]${NC} $*";}
-# shellcheck disable=SC2329
+# shellcheck disable=SC2317,SC2329  # Functions are used by trap and other scripts
 log_warning() { log "${YELLOW}[WARNING]${NC} $*";}
 
 log_info "=== $APP_NAME Installer Started ==="
@@ -70,6 +70,7 @@ if [[ "$(uname -s)" != "Linux" ]]; then
 fi
 log_info "Platform check passed: Linux"
 
+# shellcheck disable=SC2317  # Function is used by trap
 # shellcheck disable=SC2329
 cleanup()
 {

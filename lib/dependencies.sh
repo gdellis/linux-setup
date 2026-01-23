@@ -6,6 +6,7 @@
 #
 
 # Ensure logging library is loaded
+# shellcheck disable=SC2317  # This check is reachable when sourced
 if ! declare -f log_info &> /dev/null; then
     echo "ERROR: dependencies.sh requires logging.sh to be sourced first" >&2
     return 1 2>/dev/null || exit 1
@@ -86,7 +87,8 @@ ensure_command() {
         return 0
     fi
 
-    log_warning "Command '$command_name' not found"
+    local msg="Command '$command_name' not found"
+    log_warning "$msg"
 
     if [[ "$auto_install" == "true" ]]; then
         log_info "Attempting to install $package_name..."

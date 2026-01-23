@@ -53,8 +53,8 @@ print_error() {
 
 # Error handling
 handle_error() {
-    local line_number=$1
-    local error_code=$2
+    local line_number="$1"
+    local error_code="$2"
     print_error "Error occurred at line $line_number with exit code $error_code"
     exit "$error_code"
 }
@@ -65,12 +65,13 @@ trap 'handle_error $LINENO $?' ERR
 # Project Root Detection
 # ----------------------------------------------------------------------------
 detect_project_root() {
-    local script_dir
+    local script_dir project_root
     script_dir=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &>/dev/null && pwd)
     
     # 1️⃣ Prefer Git if we are inside a repo
-    if TOP=$(git rev-parse --show-toplevel 2>/dev/null); then
-        print_info "Found Git repository root: $TOP"
+    if project_root=$(git rev-parse --show-toplevel 2>/dev/null); then
+        print_info "Found Git repository root: $project_root"
+        TOP="$project_root"
         return 0
     fi
     

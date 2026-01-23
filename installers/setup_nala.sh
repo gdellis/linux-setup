@@ -198,7 +198,7 @@ install_nala_debian() {
             return 1
         fi
 
-        if install_package -t bullseye-backports nala; then
+        if sudo apt-get install -y -t bullseye-backports nala; then
             log_success "Nala installed from backports"
             return 0
         else

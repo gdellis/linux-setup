@@ -187,7 +187,7 @@ main() {
     log_info "Starting Ollama setup..."
 
     # Check basic dependencies (curl, jq)
-    check_dependencies
+    check_dependencies "$@"
 
     # Check/install Ollama
     if ! command -v ollama &> /dev/null; then

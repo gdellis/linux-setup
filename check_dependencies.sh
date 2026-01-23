@@ -106,12 +106,12 @@ check_dependency_group() {
 
     local missing=()
     local found=()
+    local version=""
 
     for dep in "${deps[@]}"; do
         if command_exists "$dep"; then
             found+=("$dep")
             if [[ "$VERBOSE" == "true" ]]; then
-                local version=""
                 version=$("$dep" --version 2>&1 | head -1 || echo "installed")
                 log_success "✓ $dep - $version"
             else
@@ -143,11 +143,11 @@ main() {
     local all_missing=()
 
     # Check essential dependencies
-    local result
+    local result found_count missing_count
     result=$(check_dependency_group "Essential System Tools" "${ESSENTIAL_DEPS[@]}")
-    read -r found missing <<< "$result"
-    ((total_found += found))
-    ((total_missing += missing))
+    read -r found_count missing_count <<< "$result"
+    ((total_found += found_count))
+    ((total_missing += missing_count))
 
     # Store missing essential deps
     for dep in "${ESSENTIAL_DEPS[@]}"; do

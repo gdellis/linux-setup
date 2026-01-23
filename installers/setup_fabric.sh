@@ -48,6 +48,7 @@ source_library() {
         fi
         
         echo "Sourcing $library_name from remote repository ($repo_user/$repo_name/$repo_branch)..." >&2
+        # shellcheck disable=SC1090,SC1091  # Dynamic sourcing from GitHub
         if ! source <(curl -fsSL "https://raw.githubusercontent.com/$repo_user/$repo_name/$repo_branch/lib/$library_name"); then
             echo "ERROR: Failed to source $library_name from remote repository" >&2
             echo "Tried URL: https://raw.githubusercontent.com/$repo_user/$repo_name/$repo_branch/lib/$library_name" >&2
@@ -95,6 +96,7 @@ while [[ $# -gt 0 ]]; do
 done
 
 # Get script directory and source logging library
+# shellcheck disable=SC2034  # SCRIPT_DIR is used in source_library
 SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 # shellcheck source=../lib/logging.sh
 # shellcheck source=../lib/dependencies.sh

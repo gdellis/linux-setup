@@ -12,6 +12,7 @@ source "$SCRIPT_DIR/../lib/logging.sh"
 source "$SCRIPT_DIR/../lib/dependencies.sh"
 
 # Constants
+# shellcheck disable=SC2034  # INSTALLER_NAME is used by scripts that source this file
 readonly INSTALLER_NAME="restic"
 readonly RESTIC_VERSION="latest"
 readonly RESTIC_CONFIG_DIR="$HOME/.config/restic"

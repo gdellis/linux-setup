@@ -14,9 +14,12 @@ COLOR_ENABLED=${COLOR_ENABLED:-true}
 readonly RED='\033[0;31m'
 readonly GREEN='\033[0;32m'
 readonly YELLOW='\033[1;33m'
+# shellcheck disable=SC2034  # BLUE is used by scripts that source this library
 readonly BLUE='\033[0;34m'
+# shellcheck disable=SC2034  # PURPLE is used by scripts that source this library
 readonly PURPLE='\033[0;35m'
 readonly CYAN='\033[0;36m'
+# shellcheck disable=SC2034  # WHITE is used by scripts that source this library
 readonly WHITE='\033[1;37m'
 readonly NC='\033[0m' # No Color
 
@@ -24,14 +27,19 @@ readonly NC='\033[0m' # No Color
 # Outputs colored text to terminal and ANSI-stripped text to log file (if $LOG_FILE is set)
 log()
 {
-    local colored_msg plain_msg
-    colored_msg="[$(date '+%Y-%m-%d %H:%M:%S')] $*"
+    local colored_msg plain_msg timestamp
+    timestamp="[$(date '+%Y-%m-%d %H:%M:%S')]"
+    colored_msg="$timestamp $*"
 
     # Strip ANSI color codes for log file
     plain_msg=$(echo -e "$colored_msg" | sed -E 's/\x1B\[([0-9]{1,2}(;[0-9]{1,2})?)?[mK]//g')
 
     # Output to terminal (with colors)
-    echo -e "$colored_msg"
+    if [[ "$COLOR_ENABLED" == "true" ]]; then
+        echo -e "$colored_msg"
+    else
+        echo "$plain_msg"
+    fi
 
     # Output to log file (without colors) if LOG_FILE is set
     if [[ -n "${LOG_FILE:-}" ]]; then
@@ -80,8 +88,8 @@ log_debug()
 # Error handling function
 handle_error()
 {
-    local _msg="$1"
-    log_error "$_msg"
+    local msg="$1"
+    log_error "$msg"
     exit 1
 }
 
