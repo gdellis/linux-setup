@@ -69,7 +69,7 @@ class RemoteAwareInstallerMenu:
             "setup_vscode.sh", "setup_neovim.sh", "setup_gum.sh", 
             "setup_nala.sh", "setup_fabric.sh", "setup_ollama.sh",
             "setup_1password.sh", "setup_protonvpn.sh", "setup_syncthing.sh",
-            "setup_orcaslicer.sh", "setup_amdgpu.sh", "setup_protonmail.sh"
+            "setup_orcaslicer.sh",             "setup_amdgpu.sh", "setup_protonmail.sh", "setup_beyondcompare.sh"
         ]
         return common_installers
 
