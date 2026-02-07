@@ -106,3 +106,144 @@ linux-setup/
   - ShellCheck (enforced via CI/CD): `shellcheck installers/*.sh lib/*.sh menu.sh check_dependencies.sh`
   - Bash strict mode: All scripts use `set -euo pipefail`
   - Code style: 4-space indentation, readonly for constants, local for variables, comprehensive error handling
+
+## GitHub Pull Request Workflow
+
+### Feature Development Process
+
+1. **Create feature branch**:
+   ```bash
+   git checkout -b feature/your-feature-name
+   ```
+
+2. **Make changes and commit**:
+   ```bash
+   git add .
+   git commit -m "Descriptive commit message"
+   git push origin feature/your-feature-name
+   ```
+
+3. **Create pull request**:
+   ```bash
+   gh pr create --title "Your feature description" --body "Detailed description of changes"
+   ```
+
+### Pre-PR Requirements
+
+Before submitting a PR, ensure:
+- ✓ All installer scripts pass validation: `./validate_installers.sh`
+- ✓ ShellCheck passes locally: `shellcheck --severity=error installers/*.sh lib/*.sh`
+- ✓ Commit messages follow conventional format
+- ✓ Branch is up-to-date with main: `git fetch origin main && git rebase origin/main`
+
+### PR Structure
+
+**Title**: Clear, concise description (max 50 chars)
+**Body**: Detailed description including:
+- What problem does this solve?
+- What changes were made?
+- What testing was performed?
+- Any breaking changes or migration notes?
+
+**Example**:
+```
+Fix ShellCheck SC1090 warnings for dynamic sourcing
+
+Add shellcheck directives to suppress SC1090 warnings for dynamic remote
+sourcing via curl in installer scripts. These warnings are expected for
+remote sourcing and cannot be statically verified.
+
+Fixed scripts:
+- installers/setup_beyondcompare.sh
+- installers/setup_gum.sh
+- installers/setup_neovim.sh
+- installers/setup_remote_example.sh
+- installers/setup_vscode.sh
+
+All validation passes with new configuration.
+```
+
+### Code Review Process
+
+1. **Automated checks must pass**:
+   - GitHub Actions ShellCheck workflow
+   - Validation script (all 16 installers)
+   - Bats tests (if applicable)
+
+2. **Manual review checklist**:
+   - ✓ Follows project coding standards (4-space indentation, strict mode)
+   - ✓ Includes proper metadata (Description, Category, Usage)
+   - ✓ Uses shared libraries where appropriate (logging, dependencies)
+   - ✓ Backward compatibility maintained
+   - ✓ Documentation updated (if applicable)
+   - ✓ No secrets or credentials committed
+
+3. **Review guidelines**:
+   - Check for security vulnerabilities
+   - Verify error handling and edge cases
+   - Ensure consistent style with existing code
+   - Test locally if possible
+   - Review commits (not just files changed)
+
+### Reviewer Guidelines
+
+**For reviewers:**
+- Be constructive and specific in feedback
+- Suggest alternatives rather than just pointing out issues
+- Approve once all concerns are addressed
+- Use GitHub's "Request changes" for blocking issues
+
+**For authors:**
+- Respond to all feedback
+- Make requested changes or explain why not
+- Don't take feedback personally
+- Squash commits if requested
+
+### Merging Process
+
+1. **All checks must pass**:
+   - GitHub Actions workflows (ShellCheck, etc.)
+   - Required status checks (if configured)
+   - Code review approval
+
+2. **Merge strategy**:
+   ```bash
+   # Squash and merge (preferred for clean history)
+   gh pr merge <PR_NUMBER> --squash --delete-branch
+   
+   # Or merge commit
+   gh pr merge <PR_NUMBER> --merge --delete-branch
+   ```
+
+3. **After merge**:
+   - Delete feature branch locally: `git branch -d feature/your-feature`
+   - Update main: `git checkout main && git pull origin main`
+
+### Best Practices
+
+**For authors:**
+- Keep PRs focused (one feature/fix per PR)
+- Make commits atomic and descriptive
+- Test thoroughly before requesting review
+- Respond promptly to feedback
+- Don't force push after review starts
+
+**For reviewers:**
+- Review within 24-48 hours if possible
+- Be clear about what needs fixing vs suggestions
+- Approve when ready, don't just comment
+- Use GitHub's review features (Approve/Request changes)
+
+### Continuous Integration
+
+The project uses GitHub Actions for CI/CD:
+- **ShellCheck Analysis**: Runs on all pushes to main/develop and all PRs
+- **Branch protection**: Main branch requires passing checks
+- **Automated testing**: Validation and ShellCheck must pass
+
+### Template Files
+
+When creating new features, use templates:
+- Installer template: `installers/template.tpl`
+- Use `installers/new_installer.sh` to generate new installers
+- Follow existing patterns in similar installers
