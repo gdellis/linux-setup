@@ -15,14 +15,21 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Run ShellCheck
-        uses: ludeeus/action-shellcheck@master
+      - name: Run ShellCheck on executable scripts
+        uses: ludeeus/action-shellcheck@2.0.0
         with:
-          scandir: '.'
           severity: warning
+          check_together: 'yes'
           ignore_paths: |
             .git
             .github
+            uninstallers
           ignore_names: |
             .bashrc
             .bash_aliases
+            package.json
+
+      - name: Run ShellCheck on library files
+        run: |
+          find lib -name "*.sh" -type f -exec shellcheck --severity=warning --external-sources {} +
+        continue-on-error: false
