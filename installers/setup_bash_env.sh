@@ -117,7 +117,6 @@ readonly BASH_CONFIG_DIR="$HOME/.config/bash"
 readonly BASH_CONFIG_FILE="$BASH_CONFIG_DIR/.bashrc"
 readonly USER_BASHRC="$HOME/.bashrc"
 readonly BASH_CONFIG_BACKUP="$HOME/.bashrc.bak"
-readonly STARSHIP_TOML_URL="https://raw.githubusercontent.com/ChrisTitusTech/mybash/refs/heads/main/starship.toml"
 
 # ------------------------------------------------------------
 # Helper Functions
@@ -154,6 +153,75 @@ check_existing_bashrc() {
         log_info "No existing .bashrc file found"
     fi
     
+    return 0
+}
+
+# Check for local changes in git repository
+has_local_changes() {
+    local repo_dir="$1"
+    
+    if [[ ! -d "$repo_dir" ]]; then
+        return 1
+    fi
+    
+    cd "$repo_dir"
+    
+    # Check for modified, untracked, or staged files
+    if [[ -n "$(git status --porcelain)" ]]; then
+        return 0  # Local changes found
+    fi
+    
+    return 1  # No local changes
+}
+
+# Safely update git repository respecting local changes
+update_repository() {
+    local repo_dir="$1"
+    local branch="${2:-main}"
+    
+    cd "$repo_dir"
+    
+    # Fetch latest changes
+    if ! git fetch origin "$branch"; then
+        log_error "Failed to fetch latest changes from remote"
+        return 1
+    fi
+    
+    # Check for local changes
+    if has_local_changes "$repo_dir"; then
+        log_warning "Local changes detected in repository"
+        
+        # Show what files have changed
+        log_info "Local changes:"
+        git status --short | while IFS= read -r line; do
+            log_info "  $line"
+        done
+        
+        if [[ "$NON_INTERACTIVE" == "false" ]]; then
+            read -rp "Stash local changes and update? (y/N): " confirm
+            if [[ "$confirm" == "y" ]] || [[ "$confirm" == "Y" ]]; then
+                log_info "Stashing local changes..."
+                git stash push -m "Auto-stash before update at $(date)"
+                log_success "Local changes stashed"
+            else
+                log_info "Skipping repository update to preserve local changes"
+                return 1
+            fi
+        else
+            # In non-interactive mode, we stash changes automatically
+            log_info "Non-interactive mode: Stashing local changes..."
+            git stash push -m "Auto-stash before update at $(date)"
+            log_success "Local changes stashed"
+        fi
+    fi
+    
+    # Update the repository
+    if ! git merge --ff-only "origin/$branch"; then
+        log_error "Failed to update repository. There may be conflicts."
+        return 1
+    fi
+    
+    log_success "Repository updated successfully"
     return 0
 }
 
