@@ -22,7 +22,7 @@ fi
 # ------------------------------------------------------------
 # region
 APP_NAME=$(basename "$0" .sh)  # Directly strips .sh extension
-readonly DL_DIR="${HOME}/downloads/$APP_NAME"
+readonly DL_DIR="${HOME}/Downloads/$APP_NAME"
 readonly LOG_DIR="${HOME}/logs/$APP_NAME"
 readonly LOG_FILE="${LOG_DIR}/$(date +%Y%m%d_%H%M%S)_${APP_NAME}.log"
 
