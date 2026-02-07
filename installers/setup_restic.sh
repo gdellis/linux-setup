@@ -1,8 +1,12 @@
 #!/usr/bin/env bash
-# shellcheck disable=SC2155
-# Restic Backup Tool Installer
+#
+# setup_restic.sh - Restic Backup Tool Installer
 # Description: Installs restic backup tool and sets up basic configuration
-# Dependencies: lib/logging.sh, lib/dependencies.sh
+# Category: System Tools
+# Usage: ./setup_restic.sh [OPTIONS]
+#
+
+set -euo pipefail
 
 set -euo pipefail
 

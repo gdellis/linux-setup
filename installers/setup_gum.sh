@@ -68,7 +68,7 @@ source_library "logging.sh"
 # region
 SCRIPT_NAME=$(basename "$0" .sh)
 readonly APP_NAME="${SCRIPT_NAME/setup_/}"
-readonly DL_DIR="${HOME}/downloads/$APP_NAME"
+readonly DL_DIR="${HOME}/Downloads/$APP_NAME"
 readonly LOG_DIR="${HOME}/logs/$APP_NAME"
 readonly LOG_FILE="${LOG_DIR}/$(date +%Y%m%d_%H%M%S)_${APP_NAME}.log"
 

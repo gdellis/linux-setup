@@ -2,6 +2,7 @@
 #
 # setup_remote_example.sh - Example of remote-capable installer
 # Description: Demonstrates how to make installers runnable directly from curl
+# Category: Development Tools
 # Usage: bash <(curl -fsSL https://raw.githubusercontent.com/user/repo/main/installers/setup_remote_example.sh)
 #
 
