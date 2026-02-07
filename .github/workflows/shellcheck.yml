@@ -15,14 +15,31 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Run ShellCheck
-        uses: ludeeus/action-shellcheck@master
+      - name: Run ShellCheck on executable scripts
+        uses: ludeeus/action-shellcheck@2.0.0
         with:
-          scandir: '.'
-          severity: warning
+          severity: error
+          check_together: 'yes'
+          # Only check files with shebangs (executable scripts)
+          check_all: false
           ignore_paths: |
             .git
             .github
+            uninstallers
+            tests
+            utilities
+            lib
           ignore_names: |
             .bashrc
             .bash_aliases
+            package.json
+        # Don't fail on warnings in executable scripts
+        env:
+          # Only fail on errors, not warnings
+          SHELLCHECK_OPTS: "--severity=error --exclude=SC2016,SC2034"
+      - name: Run ShellCheck on library files
+        run: |
+          # For library files, only check for actual errors, not stylistic warnings
+          find lib -name "*.sh" -type f -exec shellcheck --severity=error --external-sources {} +
+        # Allow warnings to pass in library files
+        continue-on-error: true

@@ -1,8 +1,7 @@
-#!/usr/bin/env bash
-#
 # error_tracking.sh - Centralized Error Tracking Library
 # Description: Provides centralized error tracking and reporting across all installer scripts
 # Usage: Source this file in your scripts: source "$SCRIPT_DIR/../lib/error_tracking.sh"
+# Note: This is a library file meant to be sourced, not executed directly
 #
 
 # Ensure logging library is loaded

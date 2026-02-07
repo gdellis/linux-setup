@@ -29,6 +29,7 @@ source_library() {
         local repo_name="linux-setup"   # Replace with actual repo name
         
         echo "Sourcing $library_name from remote repository..."
+# shellcheck source=/dev/null  # Dynamic sourcing - ShellCheck can't verify
         if ! source <(curl -fsSL "https://raw.githubusercontent.com/$repo_user/$repo_name/main/lib/$library_name"); then
             echo "ERROR: Failed to source $library_name from remote repository"
             exit 1
