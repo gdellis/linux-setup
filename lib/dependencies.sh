@@ -4,6 +4,10 @@
 # Description: Provides functions for checking and installing system dependencies
 # Usage: Source this file in your scripts: source "$SCRIPT_DIR/../lib/dependencies.sh"
 #
+# Global mode flags
+DRY_RUN=${DRY_RUN:-false}
+NON_INTERACTIVE=${NON_INTERACTIVE:-false}
+#
 
 # Ensure logging library is loaded
 # shellcheck disable=SC2317  # This check is reachable when sourced

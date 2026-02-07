@@ -1,4 +1,10 @@
 #!/usr/bin/env bash
+#
+# new_installer.sh - Installer Script Generator
+# Description: Generates new installer scripts from template with proper structure and metadata
+# Category: Utilities
+# Usage: ./installers/new_installer.sh <new_script_name>
+#
 
 set -euo pipefail
 
