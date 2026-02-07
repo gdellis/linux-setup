@@ -55,7 +55,7 @@ readonly BASE_URL="https://github.com/OrcaSlicer/OrcaSlicer/releases/download/${
 # region
 
 readonly APP_NAME=orcaslicer
-readonly DL_DIR="${HOME}/downloads/$APP_NAME"
+readonly DL_DIR="${HOME}/Downloads/$APP_NAME"
 readonly LOG_DIR="${HOME}/logs/$APP_NAME"
 readonly LOG_FILE="${LOG_DIR}/install_$(date +%Y%m%d_%H%M%S).log"
 
