@@ -277,9 +277,23 @@ clone_bash_files() {
     fi
     
     log_info "Cloning repository to $BASH_CONFIG_DIR..."
-    if ! git clone "$BASH_FILES_REPO" "$BASH_CONFIG_DIR"; then
-        log_error "Failed to clone repository"
-        return 1
+    # Try gh CLI first for authenticated access, fall back to git clone if necessary
+    if command -v gh >/dev/null 2>&1; then
+        log_info "Using GitHub CLI for authenticated clone..."
+        if ! gh repo clone "$(echo "$BASH_FILES_REPO" | sed 's|.*/||' | sed 's|.git$||')" "$BASH_CONFIG_DIR" -- --bare 2>/dev/null; then
+            # If gh repo clone fails, fall back to regular git clone
+            log_info "GitHub CLI clone failed, falling back to git clone..."
+            if ! git clone "$BASH_FILES_REPO" "$BASH_CONFIG_DIR"; then
+                log_error "Failed to clone repository"
+                return 1
+            fi
+        fi
+    else
+        # Use regular git clone if gh CLI is not available
+        if ! git clone "$BASH_FILES_REPO" "$BASH_CONFIG_DIR"; then
+            log_error "Failed to clone repository"
+            return 1
+        fi
     fi
     
     log_success "Repository cloned successfully"
