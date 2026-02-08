@@ -117,6 +117,7 @@ readonly BASH_CONFIG_DIR="$HOME/.config/bash"
 readonly BASH_CONFIG_FILE="$BASH_CONFIG_DIR/.bashrc"
 readonly USER_BASHRC="$HOME/.bashrc"
 readonly BASH_CONFIG_BACKUP="$HOME/.bashrc.bak"
+readonly STARSHIP_TOML_URL="https://raw.githubusercontent.com/gdellis/bash_files/main/starship.toml"
 
 # ------------------------------------------------------------
 # Helper Functions
