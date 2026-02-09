@@ -14,10 +14,15 @@ set -euo pipefail
 
 # Parse command line arguments
 NON_INTERACTIVE=false
+REGISTER_ONLY=false
 while [[ $# -gt 0 ]]; do
     case "$1" in
         -y|--yes|--non-interactive)
             NON_INTERACTIVE=true
+            shift
+            ;;
+        -r|--register-only)
+            REGISTER_ONLY=true
             shift
             ;;
         -h|--help)
@@ -25,7 +30,13 @@ while [[ $# -gt 0 ]]; do
             echo ""
             echo "Options:"
             echo "  -y, --yes, --non-interactive    Skip confirmation prompts"
+            echo "  -r, --register-only             Register license only (skip installation)"
             echo "  -h, --help                      Show this help message"
+            echo ""
+            echo "Examples:"
+            echo "  $0                            # Install Beyond Compare"
+            echo "  $0 --register-only            # Register license only"
+            echo "  $0 --register-only --yes      # Register license without prompts"
             exit 0
             ;;
         *)
@@ -44,6 +55,56 @@ is_running_remotely() {
         return 0  # true
     else
         return 1  # false
+    fi
+}
+
+# Register Beyond Compare license using 1Password CLI
+register_bc()
+{
+    log_info "Attempting to register Beyond Compare license..."
+    
+    log_warning "This script uses 1Password CLI to retrieve the license."
+    log_info "If you don't have 1Password or prefer a different method,"
+    log_info "refer to https://www.scootersoftware.com/kb/linuxtips for alternative license installation methods."
+    echo
+    
+    # Check for 1Password CLI
+    if ! command -v op >/dev/null 2>&1; then
+        log_warning "1Password CLI (op) not found. Skipping license registration."
+        return 0
+    fi
+    
+    # Make sure we're signed in to 1Password
+    if ! op account list >/dev/null 2>&1; then
+        log_warning "Not signed in to 1Password. Skipping license registration."
+        return 0
+    fi
+    
+    local _license
+    if ! _license="$(op read 'op://Private/Beyond Compare License/license key' 2>/dev/null)"; then
+        log_warning "Failed to retrieve Beyond Compare license from 1Password."
+        log_info "Make sure you have:"
+        log_info "  1. 1Password CLI installed (brew install 1password-cli)"
+        log_info "  2. Signed in to 1Password (eval \"$(op signin)\")"
+        log_info "  3. A 'Beyond Compare License' item in your Private vault"
+        return 0
+    fi
+    
+    if [[ -z "$_license" ]]; then
+        log_warning "Beyond Compare license is empty in 1Password."
+        return 0
+    fi
+    
+    local _cfg_dir="$HOME/.config/bcompare5"
+    local _license_file="$_cfg_dir/BC5Key.txt"
+    
+    test -d "$_cfg_dir" || mkdir -p "$_cfg_dir"
+    
+    if echo "$_license" >"$_license_file"; then
+        log_success "Beyond Compare license registered successfully"
+    else
+        log_error "Failed to write Beyond Compare license file"
+        return 1
     fi
 }
 
@@ -236,6 +297,9 @@ install_beyondcompare() {
         add_beyondcompare_repo
     fi
 
+    # Register Beyond Compare license (optional, only if 1Password CLI is available)
+    register_bc
+
     log_success "Beyond Compare installed successfully"
 }
 
@@ -281,6 +345,19 @@ add_beyondcompare_repo() {
 # ------------------------------------------------------------
 
 main() {
+    # Check if we should only register the license
+    if [[ "$REGISTER_ONLY" == "true" ]]; then
+        log_info "Running in register-only mode..."
+        
+        # Register Beyond Compare license
+        register_bc
+        
+        log_success "========================================"
+        log_success "✓ Beyond Compare license registration completed!"
+        log_success "========================================"
+        exit 0
+    fi
+    
     log_info "Starting Beyond Compare installation..."
     log_info "Current Beyond Compare installation status: $(get_installed_version)"
 
@@ -309,7 +386,7 @@ main() {
         if confirm_action "Do you want to prevent the automatic addition of the Beyond Compare repository?"; then
             log_info "Creating /etc/default/bcompare to prevent repository addition..."
             if ! sudo touch /etc/default/bcompare; then
-                log_warning "Failed to create /etc/default/bcompare. Repository may be added automatically."
+                log_warning "Failed to create /etc/default/bcombine. Repository may be added automatically."
             fi
         fi
     fi
