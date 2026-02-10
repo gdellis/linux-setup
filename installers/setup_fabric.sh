@@ -140,25 +140,36 @@ set -o nounset   # Disallow expansion of unset variables
 # ------------------------------------------------------------
 
 check_dependencies() {
-    log_info "Checking dependencies"
-    local dependencies=(
-        op
-        ffmpeg
-        yt-dlp
-        curl
-    )
-
-    local status=0
-
-    for cmd in "${dependencies[@]}"; do
-        if command -v "$cmd" >/dev/null 2>&1; then
-            log_info "✅ Dependency '$cmd' exists"
-        else
-            status=1
-            log_warning "⛔ Dependency '$cmd' not found"
-        fi
-    done
-    return $status
+    log_info "Checking and installing dependencies if needed"
+    
+    local auto_install=true  # Always try to auto-install in this script
+    
+    # Check and install each dependency with proper package mapping
+    local failed_deps=()
+    
+    if ! ensure_command "op" "1password-cli" "$auto_install"; then
+        failed_deps+=("op (1password-cli)")
+    fi
+    
+    if ! ensure_command "ffmpeg" "ffmpeg" "$auto_install"; then
+        failed_deps+=("ffmpeg")
+    fi
+    
+    if ! ensure_command "yt-dlp" "yt-dlp" "$auto_install"; then
+        failed_deps+=("yt-dlp")
+    fi
+    
+    if ! ensure_command "curl" "curl" "$auto_install"; then
+        failed_deps+=("curl")
+    fi
+    
+    if [[ ${#failed_deps[@]} -gt 0 ]]; then
+        log_error "Failed to install dependencies: ${failed_deps[*]}"
+        return 1
+    fi
+    
+    log_success "All dependencies checked and installed successfully"
+    return 0
 }
 
 install_fabric() {
@@ -200,11 +211,64 @@ install_fabric() {
 create_config() {
     log_info "Setting up Fabric Config"
 
-    # Get API key with error handling
-    local yt_key
-    if ! yt_key="$(op read "op://Private/Google API Keys/yt fabric" 2>/dev/null)"; then
-        log_error "Failed to read API key from 1Password"
-        return 1
+    # Try to get API key from 1Password with fallback
+    local yt_key=""
+    local use_youtube_integration=false
+    
+    # Check if 1Password CLI is available and user is signed in
+    if command -v op >/dev/null 2>&1; then
+        if op account list >/dev/null 2>&1; then
+            # Try to read API key from 1Password
+            yt_key="$(op read "op://Private/Google API Keys/yt fabric" 2>/dev/null)" || true
+            
+            if [[ -n "$yt_key" ]]; then
+                use_youtube_integration=true
+                log_info "Successfully retrieved YouTube API key from 1Password"
+            else
+                log_warning "Could not retrieve YouTube API key from 1Password"
+                log_info "YouTube integration will be disabled"
+            fi
+        else
+            log_warning "1Password CLI found but not signed in"
+            log_info "YouTube integration will be disabled"
+            log_info "To enable YouTube integration:"
+            log_info "  1. Sign in to 1Password CLI: eval \"\$(op signin)\""
+            log_info "  2. Re-run this script"
+        fi
+    else
+        log_warning "1Password CLI not found"
+        log_info "YouTube integration will be disabled by default"
+        log_info "To enable YouTube integration, you can:"
+        log_info "  Option 1 - Use 1Password:"
+        log_info "    1. Install 1Password CLI: ./installers/setup_1password.sh"
+        log_info "    2. Sign in to 1Password CLI: eval \"\$(op signin)\""
+        log_info "    3. Re-run this script"
+        log_info "  Option 2 - Enter API key manually (next step)"
+    fi
+
+    # If we don't have a YouTube API key and we're in interactive mode, ask user if they want to enter one manually
+    if [[ -z "$yt_key" && "$NON_INTERACTIVE" == "false" ]]; then
+        echo
+        log_info "You can enable YouTube integration by entering your Google API key manually"
+        log_info "Get your API key at: https://console.developers.google.com/"
+        log_info "YouTube Data API v3 must be enabled for your key"
+        if confirm_action "Would you like to enter your YouTube API key now?"; then
+            while [[ -z "$yt_key" ]]; do
+                read -rp "Enter your YouTube API key (or leave blank to skip): " yt_key
+                if [[ -z "$yt_key" ]]; then
+                    log_info "Skipping YouTube API key entry"
+                    break
+                elif [[ ${#yt_key} -lt 30 ]]; then
+                    log_warning "API key seems too short, please check and re-enter"
+                    yt_key=""
+                else
+                    use_youtube_integration=true
+                    log_success "YouTube API key accepted"
+                fi
+            done
+        else
+            log_info "Skipping manual YouTube API key entry"
+        fi
     fi
 
     local env_file="$HOME/.config/fabric/.env"
@@ -238,7 +302,7 @@ create_config() {
         return 1
     }
 
-    # Create config file
+    # Create config file with conditional YouTube API key
     cat > "$env_file" << EOF
 DEFAULT_VENDOR=Ollama
 DEFAULT_MODEL=kimi-k2-thinking:cloud
@@ -250,7 +314,7 @@ PROMPT_STRATEGIES_GIT_REPO_URL=https://github.com/danielmiessler/fabric.git
 PROMPT_STRATEGIES_GIT_REPO_STRATEGIES_FOLDER=data/strategies
 OLLAMA_API_URL=http://localhost:11434
 OLLAMA_HTTP_TIMEOUT=20m
-YOUTUBE_API_KEY=${yt_key}
+YOUTUBE_API_KEY=${yt_key:-}
 EOF
 
     # Verify the file was created
@@ -259,7 +323,15 @@ EOF
         return 1
     fi
 
-    log_info "Fabric config created successfully at $env_file"
+    if [[ "$use_youtube_integration" == "true" ]]; then
+        log_info "Fabric config created successfully with YouTube integration enabled"
+    else
+        log_info "Fabric config created successfully (YouTube integration disabled)"
+        log_info "To enable YouTube integration later:"
+        log_info "  1. Edit $env_file"
+        log_info "  2. Set YOUTUBE_API_KEY to your Google API key"
+        log_info "  3. YouTube Data API v3 must be enabled for your key"
+    fi
 }
 
 setup_env() {

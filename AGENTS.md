@@ -145,22 +145,94 @@ Before submitting a PR, ensure:
 - What testing was performed?
 - Any breaking changes or migration notes?
 
+**Template for PR descriptions**:
+```
+## Summary of Changes
+
+Brief description of what this PR accomplishes.
+
+## Problem Statement
+
+Explanation of the issue or enhancement being addressed.
+
+## Solution Details
+
+Detailed explanation of the implementation:
+- Which files were modified
+- What functions or logic were added/changed
+- Why this approach was chosen
+
+## Testing Performed
+
+Description of how the changes were tested:
+- Manual testing steps
+- Automated tests run
+- Validation script results
+- ShellCheck compliance
+
+## Affected Components
+
+List of project components that are affected by these changes:
+- Specific installer scripts
+- Shared libraries
+- Configuration files
+- Documentation files
+
+## Validation Results
+
+Results from validation checks:
+- All installer scripts pass validation: `./validate_installers.sh`
+- ShellCheck passes locally: `shellcheck --severity=error installers/*.sh lib/*.sh`
+- Any other relevant test results
+
+## Migration Notes (if applicable)
+
+Instructions for users/contributors about any breaking changes or steps needed to upgrade.
+```
+
 **Example**:
 ```
-Fix ShellCheck SC1090 warnings for dynamic sourcing
+Enhanced dependency installation in Fabric AI setup
 
-Add shellcheck directives to suppress SC1090 warnings for dynamic remote
-sourcing via curl in installer scripts. These warnings are expected for
-remote sourcing and cannot be statically verified.
+## Summary of Changes
 
-Fixed scripts:
-- installers/setup_beyondcompare.sh
-- installers/setup_gum.sh
-- installers/setup_neovim.sh
-- installers/setup_remote_example.sh
-- installers/setup_vscode.sh
+Updated setup_fabric.sh to automatically install missing dependencies instead of just checking for them.
 
-All validation passes with new configuration.
+## Problem Statement
+
+The Fabric AI installer was checking for dependencies but not installing them automatically, requiring users to manually install missing packages before running the script.
+
+## Solution Details
+
+Modified the check_dependencies function in setup_fabric.sh to use ensure_command for each dependency:
+- op (1password-cli)
+- ffmpeg
+- yt-dlp
+- curl
+
+This leverages the shared dependencies library to automatically install missing packages.
+
+## Testing Performed
+
+- Verified the script installs dependencies correctly when missing
+- Confirmed existing installations are detected properly
+- Validated installer still functions correctly after dependency installation
+- Ran full validation suite: `./validate_installers.sh`
+- Passed ShellCheck: `shellcheck installers/setup_fabric.sh`
+
+## Affected Components
+
+- installers/setup_fabric.sh
+
+## Validation Results
+
+All 20 installer scripts pass validation:
+- setup_fabric.sh: ✓ Pass
+- ShellCheck: ✓ Pass
+
+## Migration Notes
+
+No breaking changes. Existing installations will continue to work as before.
 ```
 
 ### Code Review Process

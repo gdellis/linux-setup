@@ -10,9 +10,6 @@
 
 set -euo pipefail
 
-# Save and change directories
-readonly ORIG_PWD=$(pwd)
-
 # Detect if we're running locally or remotely
 is_running_remotely() {
     local script_path="${BASH_SOURCE[0]}"
@@ -57,11 +54,27 @@ source_library() {
             echo "Current values: REPO_USER=$repo_user, REPO_NAME=$repo_name, REPO_BRANCH=$repo_branch" >&2
             exit 1
         fi
+    else
+        # Source library locally
+        local script_dir
+        script_dir=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &>/dev/null && pwd)
+        
+        if [[ -f "$script_dir/../lib/$library_name" ]]; then
+            # shellcheck source=/dev/null
+            source "$script_dir/../lib/$library_name"
+        else
+            echo "ERROR: Local library $library_name not found" >&2
+            exit 1
+        fi
     fi
 }
 
 # Source required libraries
 source_library "logging.sh"
+source_library "dependencies.sh"
+
+# Save and change directories
+readonly ORIG_PWD=$(pwd)
 
 # ------------------------------------------------------------
 # Setup Logging

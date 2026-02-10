@@ -54,7 +54,8 @@ check_installer() {
     
     # Check for required libraries
     if ! grep -q "logging.sh" "$installer" || ! grep -q "dependencies.sh" "$installer"; then
-        log_warn "  ⚠ Missing library references (logging.sh, dependencies.sh)"
+        log_error "  ✗ Missing library references (logging.sh, dependencies.sh)"
+        errors=$((errors + 1))
     fi
     
     if [ $errors -eq 0 ]; then
