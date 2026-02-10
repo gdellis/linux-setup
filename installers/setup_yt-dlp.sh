@@ -1,12 +1,40 @@
 #!/usr/bin/env bash
 #
-# new_installer.sh - Installer Script Generator
-# Description: Generates new installer scripts from template with proper structure and metadata
+# setup_yt-dlp.sh - yt-dlp Installation Script
+# Description: Installs yt-dlp, a command-line program to download videos from YouTube and other sites
 # Category: Utilities
-# Usage: ./installers/new_installer.sh <new_script_name>
+# Usage: ./setup_yt-dlp.sh [OPTIONS]
+#        -y, --yes, --non-interactive    Skip confirmation prompts
+#        -h, --help                      Show help message
+#        Can also be run remotely with: bash <(curl -fsSL https://raw.githubusercontent.com/user/repo/main/installers/setup_yt-dlp.sh)
+#        Automatically detects branch when run from non-main branches
 #
 
 set -euo pipefail
+
+# Parse command line arguments
+NON_INTERACTIVE=false
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        -y|--yes|--non-interactive)
+            NON_INTERACTIVE=true
+            shift
+            ;;
+        -h|--help)
+            echo "Usage: $0 [OPTIONS]"
+            echo ""
+            echo "Options:"
+            echo "  -y, --yes, --non-interactive    Skip confirmation prompts"
+            echo "  -h, --help                      Show this help message"
+            exit 0
+            ;;
+        *)
+            echo "Unknown option: $1"
+            echo "Use --help for usage information"
+            exit 1
+            ;;
+    esac
+done
 
 # Detect if we're running locally or remotely
 is_running_remotely() {
@@ -32,19 +60,18 @@ source_library() {
         # For remote execution, try to detect branch from script URL if possible
         # This is an enhancement to handle cases where the script is run from a non-default branch
         local script_url
-        script_url=$(curl -fsSL -w "%{url_effective}\n" -o /dev/null "https://raw.githubusercontent.com/$repo_user/$repo_name/$repo_branch/installers/new_installer.sh" 2>/dev/null || echo "")
+        script_url=$(curl -fsSL -w "%{url_effective}\n" -o /dev/null "https://raw.githubusercontent.com/$repo_user/$repo_name/$repo_branch/installers/setup_yt-dlp.sh" 2>/dev/null || echo "")
         
         if [[ -n "$script_url" ]] && [[ "$script_url" == *"raw.githubusercontent.com"* ]]; then
             # Extract branch from URL if possible
             local url_branch
             url_branch=$(echo "$script_url" | sed -E "s@.*raw.githubusercontent.com/[^/]+/[^/]+/([^/]+)/.*@\1@")
-            if [[ -n "$url_branch" ]] && [[ "$url_branch" != "new_installer.sh" ]]; then
+            if [[ -n "$url_branch" ]] && [[ "$url_branch" != "setup_yt-dlp.sh" ]]; then
                 repo_branch="$url_branch"
             fi
         fi
         
         echo "Sourcing $library_name from remote repository ($repo_user/$repo_name/$repo_branch)..." >&2
-# shellcheck source=/dev/null  # Dynamic sourcing - ShellCheck can't verify
         if ! source <(curl -fsSL "https://raw.githubusercontent.com/$repo_user/$repo_name/$repo_branch/lib/$library_name"); then
             echo "ERROR: Failed to source $library_name from remote repository" >&2
             echo "Tried URL: https://raw.githubusercontent.com/$repo_user/$repo_name/$repo_branch/lib/$library_name" >&2
@@ -73,13 +100,6 @@ source_library "dependencies.sh"
 
 # Save and change directories
 readonly ORIG_PWD=$(pwd)
-readonly SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
-# Check argument first
-if [[ $# -eq 0 ]]; then
-    echo "Usage: $0 <new_script_name>"
-    exit 1
-fi
-
 
 # ------------------------------------------------------------
 # Setup Logging
@@ -97,83 +117,74 @@ mkdir -p "$LOG_DIR"
 
 log_info "=== $APP_NAME Installer Started ==="
 log_info "Log file: $LOG_FILE"
+if [[ "$NON_INTERACTIVE" == "true" ]]; then
+    log_info "Running in non-interactive mode"
+fi
 # endregion
 
-# ------------------------------------------------------------
-# Platform Check - Linux Only
-# ------------------------------------------------------------
-if [[ "$(uname -s)" != "Linux" ]]; then
-    log_error "This installer generator is only supported on Linux platforms"
-    log_error "Detected OS: $(uname -s)"
-    log_error "Please run this script on a Linux system"
-    exit 1
-fi
-log_info "Platform check passed: Linux"
-
-# shellcheck disable=SC2317  # Function is used by trap
-# shellcheck disable=SC2329
 cleanup()
 {
     local exit_code=$?
-    
+
     log_info "Cleaning up..."
-    
+
     # Return to original directory
     cd "$ORIG_PWD" 2>/dev/null || true
-    
-    log_success "Cleanup complete"
+
+    log_info "Cleanup complete"
     # shellcheck disable=SC2086
     exit $exit_code
-
 }
 
 # Set trap for various exit signals
 trap cleanup EXIT INT TERM ERR
 
-# Validate script name
-NEW_SCRIPT="$1"
-if [[ "$NEW_SCRIPT" != setup_*.sh ]]; then
-    log_error "Script name must follow pattern 'setup_*.sh'" >&2
-    exit 1
-fi
+# ------------------------------------------------------------
+# Main Installation Logic
+# ------------------------------------------------------------
 
-# Change directories to script directory
-if ! cd "$SCRIPT_DIR"; then
-    log_error "Cannot change to script directory: $SCRIPT_DIR" >&2
-    exit 1
-fi
+main() {
+    log_info "Starting yt-dlp installation..."
 
-# Check if template exists
-TEMPLATE="template.tpl"
+    # Check if already installed
+    if command -v yt-dlp &> /dev/null; then
+        local installed_version
+        installed_version=$(yt-dlp --version 2>&1 || echo "unknown")
+        log_warning "yt-dlp is already installed (version: $installed_version)"
+        
+        if [[ "$NON_INTERACTIVE" == "true" ]]; then
+            log_info "Non-interactive mode: Proceeding with reinstallation"
+        else
+            read -rp "Do you want to reinstall? [y/N]: " reinstall
+            if [[ ! "$reinstall" =~ ^[Yy]$ ]]; then
+                log_info "Installation cancelled"
+                exit 0
+            fi
+        fi
+    fi
 
-if [[ ! -f "$TEMPLATE" ]]; then
-    log_error "Template file '$TEMPLATE' not found"
-    exit 1
-fi
+    # Install yt-dlp using the dependency management functions
+    if install_package "yt-dlp"; then
+        log_success "===================================="
+        log_success "yt-dlp installation completed!"
+        log_success "===================================="
+        echo
+        echo "yt-dlp is now ready to use. Try it out:"
+        echo "  yt-dlp --version"
+        echo "  yt-dlp --help"
+        echo
+        echo "Basic usage examples:"
+        echo "  yt-dlp https://www.youtube.com/watch?v=VIDEO_ID"
+        echo "  yt-dlp -f bestvideo+bestaudio https://www.youtube.com/watch?v=VIDEO_ID"
+        echo
+        exit 0
+    else
+        log_error "yt-dlp installation failed"
+        exit 1
+    fi
+}
 
-# Check if target exists
-if [[ -f "$NEW_SCRIPT" ]]; then
-    log_error "Script '$NEW_SCRIPT' already exists"
-    exit 1
-fi
-
-log_info "Creating new installer script '$NEW_SCRIPT'"
-
-# Create script
-if cp "$TEMPLATE" "$NEW_SCRIPT"; then
-    chmod +x "$NEW_SCRIPT"  # Make it executable
-    log_success "Created '$NEW_SCRIPT'"
-    
-    # Show usage example
-    echo ""
-    echo "To run this script locally:"
-    echo "  ./$NEW_SCRIPT"
-    echo ""
-    echo "To run this script remotely:"
-    echo "  bash <(curl -fsSL https://raw.githubusercontent.com/yourusername/linux-setup/main/installers/$NEW_SCRIPT)"
-    echo ""
-    exit 0
-else
-    log_error "Failed to create '$NEW_SCRIPT'"
-    exit 1
+# Run main function if script is executed directly
+if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+    main "$@"
 fi
