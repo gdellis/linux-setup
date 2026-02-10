@@ -237,11 +237,38 @@ create_config() {
         fi
     else
         log_warning "1Password CLI not found"
-        log_info "YouTube integration will be disabled"
-        log_info "To enable YouTube integration:"
-        log_info "  1. Install 1Password CLI: ./installers/setup_1password.sh"
-        log_info "  2. Sign in to 1Password CLI: eval \"\$(op signin)\""
-        log_info "  3. Re-run this script"
+        log_info "YouTube integration will be disabled by default"
+        log_info "To enable YouTube integration, you can:"
+        log_info "  Option 1 - Use 1Password:"
+        log_info "    1. Install 1Password CLI: ./installers/setup_1password.sh"
+        log_info "    2. Sign in to 1Password CLI: eval \"\$(op signin)\""
+        log_info "    3. Re-run this script"
+        log_info "  Option 2 - Enter API key manually (next step)"
+    fi
+
+    # If we don't have a YouTube API key and we're in interactive mode, ask user if they want to enter one manually
+    if [[ -z "$yt_key" && "$NON_INTERACTIVE" == "false" ]]; then
+        echo
+        log_info "You can enable YouTube integration by entering your Google API key manually"
+        log_info "Get your API key at: https://console.developers.google.com/"
+        log_info "YouTube Data API v3 must be enabled for your key"
+        if confirm_action "Would you like to enter your YouTube API key now?"; then
+            while [[ -z "$yt_key" ]]; do
+                read -rp "Enter your YouTube API key (or leave blank to skip): " yt_key
+                if [[ -z "$yt_key" ]]; then
+                    log_info "Skipping YouTube API key entry"
+                    break
+                elif [[ ${#yt_key} -lt 30 ]]; then
+                    log_warning "API key seems too short, please check and re-enter"
+                    yt_key=""
+                else
+                    use_youtube_integration=true
+                    log_success "YouTube API key accepted"
+                fi
+            done
+        else
+            log_info "Skipping manual YouTube API key entry"
+        fi
     fi
 
     local env_file="$HOME/.config/fabric/.env"
@@ -300,6 +327,10 @@ EOF
         log_info "Fabric config created successfully with YouTube integration enabled"
     else
         log_info "Fabric config created successfully (YouTube integration disabled)"
+        log_info "To enable YouTube integration later:"
+        log_info "  1. Edit $env_file"
+        log_info "  2. Set YOUTUBE_API_KEY to your Google API key"
+        log_info "  3. YouTube Data API v3 must be enabled for your key"
     fi
 }
 
