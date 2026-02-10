@@ -140,25 +140,36 @@ set -o nounset   # Disallow expansion of unset variables
 # ------------------------------------------------------------
 
 check_dependencies() {
-    log_info "Checking dependencies"
-    local dependencies=(
-        op
-        ffmpeg
-        yt-dlp
-        curl
-    )
-
-    local status=0
-
-    for cmd in "${dependencies[@]}"; do
-        if command -v "$cmd" >/dev/null 2>&1; then
-            log_info "✅ Dependency '$cmd' exists"
-        else
-            status=1
-            log_warning "⛔ Dependency '$cmd' not found"
-        fi
-    done
-    return $status
+    log_info "Checking and installing dependencies if needed"
+    
+    local auto_install=true  # Always try to auto-install in this script
+    
+    # Check and install each dependency with proper package mapping
+    local failed_deps=()
+    
+    if ! ensure_command "op" "1password-cli" "$auto_install"; then
+        failed_deps+=("op (1password-cli)")
+    fi
+    
+    if ! ensure_command "ffmpeg" "ffmpeg" "$auto_install"; then
+        failed_deps+=("ffmpeg")
+    fi
+    
+    if ! ensure_command "yt-dlp" "yt-dlp" "$auto_install"; then
+        failed_deps+=("yt-dlp")
+    fi
+    
+    if ! ensure_command "curl" "curl" "$auto_install"; then
+        failed_deps+=("curl")
+    fi
+    
+    if [[ ${#failed_deps[@]} -gt 0 ]]; then
+        log_error "Failed to install dependencies: ${failed_deps[*]}"
+        return 1
+    fi
+    
+    log_success "All dependencies checked and installed successfully"
+    return 0
 }
 
 install_fabric() {
@@ -200,11 +211,37 @@ install_fabric() {
 create_config() {
     log_info "Setting up Fabric Config"
 
-    # Get API key with error handling
-    local yt_key
-    if ! yt_key="$(op read "op://Private/Google API Keys/yt fabric" 2>/dev/null)"; then
-        log_error "Failed to read API key from 1Password"
-        return 1
+    # Try to get API key from 1Password with fallback
+    local yt_key=""
+    local use_youtube_integration=false
+    
+    # Check if 1Password CLI is available and user is signed in
+    if command -v op >/dev/null 2>&1; then
+        if op account list >/dev/null 2>&1; then
+            # Try to read API key from 1Password
+            yt_key="$(op read "op://Private/Google API Keys/yt fabric" 2>/dev/null)" || true
+            
+            if [[ -n "$yt_key" ]]; then
+                use_youtube_integration=true
+                log_info "Successfully retrieved YouTube API key from 1Password"
+            else
+                log_warning "Could not retrieve YouTube API key from 1Password"
+                log_info "YouTube integration will be disabled"
+            fi
+        else
+            log_warning "1Password CLI found but not signed in"
+            log_info "YouTube integration will be disabled"
+            log_info "To enable YouTube integration:"
+            log_info "  1. Sign in to 1Password CLI: eval \"\$(op signin)\""
+            log_info "  2. Re-run this script"
+        fi
+    else
+        log_warning "1Password CLI not found"
+        log_info "YouTube integration will be disabled"
+        log_info "To enable YouTube integration:"
+        log_info "  1. Install 1Password CLI: ./installers/setup_1password.sh"
+        log_info "  2. Sign in to 1Password CLI: eval \"\$(op signin)\""
+        log_info "  3. Re-run this script"
     fi
 
     local env_file="$HOME/.config/fabric/.env"
@@ -238,7 +275,7 @@ create_config() {
         return 1
     }
 
-    # Create config file
+    # Create config file with conditional YouTube API key
     cat > "$env_file" << EOF
 DEFAULT_VENDOR=Ollama
 DEFAULT_MODEL=kimi-k2-thinking:cloud
@@ -250,7 +287,7 @@ PROMPT_STRATEGIES_GIT_REPO_URL=https://github.com/danielmiessler/fabric.git
 PROMPT_STRATEGIES_GIT_REPO_STRATEGIES_FOLDER=data/strategies
 OLLAMA_API_URL=http://localhost:11434
 OLLAMA_HTTP_TIMEOUT=20m
-YOUTUBE_API_KEY=${yt_key}
+YOUTUBE_API_KEY=${yt_key:-}
 EOF
 
     # Verify the file was created
@@ -259,7 +296,11 @@ EOF
         return 1
     fi
 
-    log_info "Fabric config created successfully at $env_file"
+    if [[ "$use_youtube_integration" == "true" ]]; then
+        log_info "Fabric config created successfully with YouTube integration enabled"
+    else
+        log_info "Fabric config created successfully (YouTube integration disabled)"
+    fi
 }
 
 setup_env() {
