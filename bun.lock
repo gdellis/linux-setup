@@ -1,0 +1,17 @@
+{
+  "lockfileVersion": 1,
+  "configVersion": 1,
+  "workspaces": {
+    "": {
+      "dependencies": {
+        "nodejs": "^0.0.0",
+        "skills": "^1.4.1",
+      },
+    },
+  },
+  "packages": {
+    "nodejs": ["nodejs@0.0.0", "", {}, "sha512-1V+0HwaB/dhxzidEFc4uJ3k52gLI4B6YBZgJIofjwYCSAkD6CI0me6TDBT2QM2nbGWNxCHcq9/wVynzQYZOhUg=="],
+
+    "skills": ["skills@1.4.1", "", { "bin": { "skills": "bin/cli.mjs", "add-skill": "bin/cli.mjs" } }, "sha512-Mmbu3sBw3cMoW6p9DzldlGpIZtFMAtiIlsHwXXtIwcd+a1MGDnjtysFabD2TvJWp3yyv+5pxfc2qcKnoWT7VEQ=="],
+  }
+}
