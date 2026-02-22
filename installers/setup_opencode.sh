@@ -95,12 +95,12 @@ install_opencode() {
 
     if command -v bun >/dev/null 2>&1; then
         log_info "Using bun to install opencode..."
-        if ! bun add -g opencode-ai@latest 2>&1 | tee -a "$LOG_FILE"; then
+        if ! bun add -g opencode-ai 2>&1 | tee -a "$LOG_FILE"; then
             handle_error "OpenCode installation via bun failed"
         fi
     elif command -v npm >/dev/null 2>&1; then
         log_info "Using npm to install opencode..."
-        if ! npm install -g opencode-ai@latest 2>&1 | tee -a "$LOG_FILE"; then
+        if ! npm install -g opencode-ai 2>&1 | tee -a "$LOG_FILE"; then
             handle_error "OpenCode installation via npm failed"
         fi
     fi
