@@ -107,10 +107,14 @@ install_opencode() {
         handle_error "OpenCode installation failed. Check /tmp/opencode_install_error.log"
     fi
 
-    rm -f "$OPENCODE_INSTALL_SCRIPT"
-
     log_success "OpenCode installed successfully"
 }
+
+cleanup() {
+    rm -f "$OPENCODE_INSTALL_SCRIPT"
+}
+
+trap cleanup EXIT
 
 main() {
     log_info "Starting OpenCode setup..."
