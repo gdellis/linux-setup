@@ -35,7 +35,7 @@ while [[ $# -gt 0 ]]; do
 done
 
 # Get script directory and source logging library
-SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=../lib/logging.sh
 source "$SCRIPT_DIR/../lib/logging.sh"
 # shellcheck source=../lib/dependencies.sh
@@ -56,10 +56,6 @@ if [[ "$NON_INTERACTIVE" == "true" ]]; then
     log_info "Running in non-interactive mode"
 fi
 
-# ------------------------------------------------------------
-# Logging
-# ------------------------------------------------------------
-
 handle_error() {
     local msg="$1"
     log_error "ERROR: $msg"
@@ -67,12 +63,30 @@ handle_error() {
 }
 
 # ------------------------------------------------------------
+# Configuration
+# ------------------------------------------------------------
+
+readonly OPENCODE_INSTALL_URL="https://opencode.ai/install"
+readonly OPENCODE_INSTALL_SCRIPT="/tmp/opencode_install_script.sh"
+
+download_install_script() {
+    log_info "Downloading OpenCode install script..."
+
+    if ! curl -fsSL "$OPENCODE_INSTALL_URL" -o "$OPENCODE_INSTALL_SCRIPT"; then
+        handle_error "Failed to download install script"
+    fi
+
+    chmod +x "$OPENCODE_INSTALL_SCRIPT"
+    log_info "Install script downloaded to $OPENCODE_INSTALL_SCRIPT"
+}
+
+# ------------------------------------------------------------
 # Dependency Checks
 # ------------------------------------------------------------
 
 check_dependencies() {
-    if ! ensure_dependencies curl; then
-        handle_error "Required dependency (curl) is missing and could not be installed"
+    if ! ensure_dependencies curl tar; then
+        handle_error "Required dependencies (curl, tar) are missing and could not be installed"
     fi
 }
 
@@ -85,11 +99,15 @@ is_opencode_installed() {
 }
 
 install_opencode() {
-    log "Installing OpenCode..."
+    log_info "Installing OpenCode..."
 
-    if ! curl -fsSL https://opencode.ai/install | bash 2>/tmp/opencode_install_error.log; then
+    download_install_script
+
+    if ! bash "$OPENCODE_INSTALL_SCRIPT" 2>/tmp/opencode_install_error.log; then
         handle_error "OpenCode installation failed. Check /tmp/opencode_install_error.log"
     fi
+
+    rm -f "$OPENCODE_INSTALL_SCRIPT"
 
     log_success "OpenCode installed successfully"
 }
